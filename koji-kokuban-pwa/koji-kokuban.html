@@ -74,7 +74,8 @@
   .brow .bactions{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start;}
   .brow .bbtn.bedit:hover,.brow .bbtn.bcopy:hover{color:var(--accent);background:#2a2519;}
   .brow .bbtn.bdel:hover{color:#ff7676;background:#3a2222;}
-  .brow .bgrip{flex:0 0 auto;color:var(--muted);padding:3px 3px;cursor:grab;touch-action:none;font-size:15px;line-height:1;}
+  .brow .bgrip{flex:0 0 auto;color:var(--accent);min-width:46px;min-height:46px;padding:0 8px;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;font-size:24px;line-height:1;border-radius:9px;background:#262b33;border:1px solid var(--line);}
+  .brow .bgrip:active{background:#2a2519;border-color:var(--accent);}
   .brow.dragging{opacity:.55;}
   .brow.drop-before{box-shadow:inset 0 3px 0 var(--accent);}
   .trow .fname,.brow .bname{flex:1 1 auto;min-width:0;width:100%;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text);font-weight:700;font-size:13px;padding:6px 7px;font-family:inherit;}
