@@ -1,6 +1,6 @@
 // 施工写真 黒板合成 — Service Worker
-// ★更新したら必ずこの数字を上げること（v1→v2）。古いキャッシュが残るのを防ぐ。
-const CACHE = 'kokuban-v1';
+// ★更新したら必ずこの数字を上げること（v2→v3）。古いキャッシュが残るのを防ぐ。
+const CACHE = 'kokuban-v2';
 
 const ASSETS = [
   './',
@@ -28,7 +28,6 @@ self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
 
-  // アプリ起動（ページ遷移）は、まずキャッシュのindexを返す＝オフライン/再起動でも確実に開く
   if (req.mode === 'navigate') {
     e.respondWith(
       caches.match('./index.html')
@@ -39,7 +38,6 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // それ以外（画像など）はキャッシュ優先、なければ取得して保存
   e.respondWith(
     caches.match(req).then((hit) => {
       if (hit) return hit;
