@@ -1,7 +1,6 @@
 // 施工写真 黒板合成 — Service Worker
-// ★更新したら必ずこの数字を上げること（v2→v3）。古いキャッシュが残るのを防ぐ。
-const CACHE = 'kokuban-v2';
-
+// ★更新したら必ずこの数字を上げること（v2→v3→v4…）。古いキャッシュが残るのを防ぐ。
+const CACHE = 'kokuban-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -10,12 +9,10 @@ const ASSETS = [
   './icon-512.png',
   './icon-512-maskable.png'
 ];
-
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(ASSETS)));
   self.skipWaiting();
 });
-
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys().then((keys) =>
@@ -23,11 +20,9 @@ self.addEventListener('activate', (e) => {
     ).then(() => self.clients.claim())
   );
 });
-
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET') return;
-
   if (req.mode === 'navigate') {
     e.respondWith(
       caches.match('./index.html')
@@ -37,7 +32,6 @@ self.addEventListener('fetch', (e) => {
     );
     return;
   }
-
   e.respondWith(
     caches.match(req).then((hit) => {
       if (hit) return hit;
@@ -47,7 +41,7 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE).then((c) => c.put(req, copy)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match('./index.html'));
+        .catch(() => caches.match('./index.html'))
     })
   );
 });
