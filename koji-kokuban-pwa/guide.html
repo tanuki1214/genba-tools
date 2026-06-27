@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16241c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="操作ガイド">
+<title>施工写真 黒板合成 ― 操作ガイド</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;}
+  body{
+    background:#0e1512; color:#f3efe4;
+    font-family:"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,system-ui,sans-serif;
+    display:flex; flex-direction:column; min-height:100dvh;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  header{padding:14px 16px 8px; text-align:center;}
+  header .ey{font-size:11px; letter-spacing:.28em; color:#9fc7ad; font-weight:800; margin:0;}
+  header h1{font-size:17px; margin:4px 0 0; font-weight:900;}
+  .stage{flex:1; display:flex; align-items:center; justify-content:center; padding:8px 12px;}
+  .wrap{width:100%; max-width:900px;}
+  video{
+    width:100%; height:auto; display:block; background:#000;
+    border-radius:14px; box-shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+  .bar{display:flex; gap:10px; justify-content:center; flex-wrap:wrap; padding:14px 16px 22px;}
+  .btn{
+    appearance:none; border:1px solid #2c4636; background:#1a2c22; color:#f3efe4;
+    border-radius:12px; padding:12px 18px; font-size:15px; font-weight:800; text-decoration:none;
+    font-family:inherit; cursor:pointer; display:inline-flex; align-items:center; gap:8px;
+  }
+  .btn:hover{border-color:#ffb300;}
+  .btn.primary{background:#ffb300; color:#3a2a00; border-color:#ffb300;}
+  .hint{color:#9fc7ad; font-size:12.5px; text-align:center; padding:0 18px 22px; line-height:1.7;}
+</style>
+</head>
+<body>
+  <header>
+    <p class="ey">OPERATION GUIDE</p>
+    <h1>施工写真 黒板合成 ― 操作ガイド</h1>
+  </header>
+
+  <div class="stage">
+    <div class="wrap">
+      <video id="v" controls playsinline preload="metadata" poster="poster.jpg" controlslist="nodownload">
+        <source src="sousa-guide.mp4" type="video/mp4">
+        お使いのブラウザは動画再生に対応していません。
+      </video>
+    </div>
+  </div>
+
+  <div class="bar">
+    <button class="btn primary" id="play">▶ 再生</button>
+    <button class="btn" id="fs">⛶ 全画面</button>
+    <a class="btn" id="dl" href="sousa-guide.mp4" download>⬇ 保存</a>
+  </div>
+  <p class="hint">再生ボタンまたは画面をタップで再生します。全画面は ⛶ か動画右下のボタンから。<br>ホーム画面に追加すると、アプリのように開けます。</p>
+
+<script>
+  var v=document.getElementById('v');
+  document.getElementById('play').addEventListener('click',function(){
+    if(v.paused){ v.play(); this.textContent='⏸ 一時停止'; } else { v.pause(); this.textContent='▶ 再生'; }
+  });
+  v.addEventListener('play',function(){document.getElementById('play').textContent='⏸ 一時停止';});
+  v.addEventListener('pause',function(){document.getElementById('play').textContent='▶ 再生';});
+  document.getElementById('fs').addEventListener('click',function(){
+    if(v.requestFullscreen) v.requestFullscreen();
+    else if(v.webkitEnterFullscreen) v.webkitEnterFullscreen(); // iOS Safari
+    else if(v.webkitRequestFullscreen) v.webkitRequestFullscreen();
+  });
+</script>
+</body>
+</html>
