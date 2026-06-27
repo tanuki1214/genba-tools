@@ -1,6 +1,6 @@
 // 施工写真 黒板合成 — Service Worker
 // ★更新したら必ずこの数字を上げること（v2→v3）。古いキャッシュが残るのを防ぐ。
-const CACHE = 'kokuban-v3';
+const CACHE = 'kokuban-v2';
 
 const ASSETS = [
   './',
