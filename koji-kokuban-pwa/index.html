@@ -7,9 +7,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#15171c">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="工事黒板">
+<meta name="apple-mobile-web-app-title" content="黒板合成">
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
   :root{--bg:#15171c;--panel:#1e2128;--panel2:#23272f;--line:#2c313b;--text:#e8eaed;--muted:#9aa0aa;--accent:#ffb300;--accent-ink:#1a1a1a;--green:#1f6b46;}
@@ -670,7 +669,9 @@ window.addEventListener('resize',()=>{if(state.photo)draw();});
 updateUI();
 </script>
 <script>
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js').catch(function(){}); });
+}
 </script>
 </body>
 </html>
