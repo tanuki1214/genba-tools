@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>施工写真 黒板合成</title>
+<style>
+  :root{--bg:#15171c;--panel:#1e2128;--panel2:#23272f;--line:#2c313b;--text:#e8eaed;--muted:#9aa0aa;--accent:#ffb300;--accent-ink:#1a1a1a;--green:#1f6b46;}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{background:var(--bg);color:var(--text);font-family:'Hiragino Kaku Gothic ProN','Noto Sans JP','Yu Gothic',sans-serif;display:flex;flex-direction:column;overflow:hidden;}
+  header{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;}
+  header .mark{width:20px;height:20px;border-radius:3px;background:repeating-linear-gradient(45deg,var(--accent) 0 6px,#1a1a1a 6px 12px);flex:0 0 auto;}
+  header h1{font-size:15px;margin:0;font-weight:800;letter-spacing:.04em;}
+  header .sub{font-size:11px;color:var(--muted);margin-left:auto;letter-spacing:.05em;}
+  .stage{flex:1 1 auto;min-height:44vh;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%,#1b1e25 0%,#0f1115 100%);padding:12px;overflow:hidden;}
+  #canvas{max-width:100%;max-height:100%;touch-action:none;display:none;box-shadow:0 8px 40px rgba(0,0,0,.5);border-radius:2px;}
+  .empty{text-align:center;color:var(--muted);padding:24px;max-width:340px;}
+  .empty .ico{font-size:46px;line-height:1;}
+  .empty p{margin:14px 0 0;font-size:13.5px;line-height:1.7;}
+  .controls{flex:0 0 auto;background:var(--panel);border-top:1px solid var(--line);max-height:54vh;overflow-y:auto;padding:12px 16px calc(16px + env(safe-area-inset-bottom));}
+  .lbl{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.12em;margin:0 0 9px;}
+  .toprow{display:flex;gap:10px;margin-bottom:12px;}
+  .acc{border:1px solid var(--line);border-radius:11px;margin-bottom:12px;overflow:hidden;background:var(--panel2);}
+  .acc-head{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none;padding:13px 14px;font-size:14px;font-weight:800;}
+  .acc-head .chev{margin-left:auto;color:var(--muted);transition:transform .18s;font-size:12px;}
+  .acc.open>.acc-head .chev{transform:rotate(90deg);}
+  .acc-body{display:none;padding:4px 14px 14px;}
+  .acc.open>.acc-body{display:block;}
+  .acc .acc{background:#1a1d23;}
+  select{width:100%;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:11px 12px;font-size:14px;font-family:inherit;margin-bottom:8px;}
+  .tg{width:100%;}
+  .tg.on{border-color:var(--accent);background:#2a2519;}
+  .field{display:flex;align-items:center;gap:10px;margin:0 0 6px;}
+  .field .name{flex:0 0 72px;font-size:12.5px;color:var(--muted);font-weight:600;}
+  .field.koshu .name{color:var(--accent);font-weight:800;}
+  input[type=text]{flex:1 1 auto;min-width:0;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:8px;padding:10px 12px;font-size:15px;font-family:inherit;}
+  input[type=text]:focus{outline:2px solid var(--accent);border-color:transparent;}
+  .fblk{padding:9px 0;border-bottom:1px dashed var(--line);}
+  .fblk:last-child{border-bottom:none;}
+  .szrow{display:flex;align-items:center;gap:10px;margin-top:6px;padding-left:82px;}
+  .szrow .szlbl{flex:0 0 auto;font-size:11px;color:var(--muted);}
+  .szrow .szval{flex:0 0 42px;text-align:right;font-size:11px;color:var(--text);font-variant-numeric:tabular-nums;}
+  .ksub{font-size:11px;color:var(--accent);font-weight:800;margin:4px 0 2px;letter-spacing:.04em;}
+  .seg{display:flex;gap:8px;margin-bottom:12px;}
+  .seg button{flex:1 1 0;padding:11px 8px;border-radius:9px;cursor:pointer;border:1.5px solid var(--line);background:var(--panel);color:var(--text);font-size:13px;font-weight:700;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .seg button .sw{width:15px;height:15px;border-radius:3px;border:1px solid #0006;}
+  .seg button.on{border-color:var(--accent);background:#2a2519;}
+  .slider{display:flex;align-items:center;gap:12px;}
+  .slider .name{flex:0 0 72px;font-size:12.5px;color:var(--muted);font-weight:600;}
+  .slider .val{flex:0 0 46px;text-align:right;font-size:12px;color:var(--text);font-variant-numeric:tabular-nums;}
+  input[type=range]{flex:1 1 auto;-webkit-appearance:none;appearance:none;height:6px;background:var(--line);border-radius:3px;margin:0;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid #1a1a1a;cursor:pointer;}
+  input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--accent);border:2px solid #1a1a1a;cursor:pointer;}
+  .btn{border:none;border-radius:10px;padding:12px 14px;cursor:pointer;font-size:14px;font-weight:800;font-family:inherit;letter-spacing:.02em;display:flex;align-items:center;justify-content:center;gap:8px;}
+  .btn.primary{background:var(--accent);color:var(--accent-ink);}
+  .btn.ghost{background:var(--panel);color:var(--text);border:1.5px solid var(--line);}
+  .btn.sm{padding:11px 8px;font-size:13px;}
+  .btn:active{transform:translateY(1px);}
+  .btn:disabled{opacity:.4;pointer-events:none;}
+  .hint{font-size:11px;color:var(--muted);line-height:1.6;margin:8px 0 0;}
+  .tree{max-height:200px;overflow-y:auto;overflow-x:hidden;border:1px solid var(--line);border-radius:8px;padding:5px;margin-bottom:8px;background:var(--panel);}
+  .trow{display:flex;align-items:center;gap:8px;padding:9px 8px;border-radius:7px;cursor:pointer;font-size:13.5px;min-width:0;}
+  .trow:hover{background:#2a2e36;}
+  .trow.folder{font-weight:700;}
+  .trow.folder.active{background:#2a2519;outline:1.5px solid var(--accent);}
+  .trow .tadd{flex:0 0 auto;color:var(--accent);padding:2px 6px;border-radius:6px;font-weight:800;}
+  .trow .tadd:hover{background:#2a2519;}
+  .brow{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;min-width:0;}
+  .brow:hover{background:#2a2e36;}
+  .brow.active{background:#2a2519;outline:1.5px solid var(--accent);}
+  .brow .bthumb{flex:0 0 auto;border:1px solid var(--line);border-radius:4px;background:#fff;display:block;cursor:pointer;}
+  .brow .bbtn{flex:0 0 auto;color:var(--muted);padding:3px 6px;border-radius:6px;font-size:12px;text-align:center;cursor:pointer;}
+  .brow .bactions{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start;}
+  .brow .bbtn.bedit:hover,.brow .bbtn.bcopy:hover{color:var(--accent);background:#2a2519;}
+  .brow .bbtn.bdel:hover{color:#ff7676;background:#3a2222;}
+  .brow .bgrip{flex:0 0 auto;color:var(--muted);padding:3px 3px;cursor:grab;touch-action:none;font-size:15px;line-height:1;}
+  .brow.dragging{opacity:.55;}
+  .brow.drop-before{box-shadow:inset 0 3px 0 var(--accent);}
+  .trow .fname,.brow .bname{flex:1 1 auto;min-width:0;width:100%;background:transparent;border:1px solid transparent;border-radius:6px;color:var(--text);font-weight:700;font-size:13px;padding:6px 7px;font-family:inherit;}
+  .trow .fname:focus,.brow .bname:focus{outline:none;border-color:var(--accent);background:#1a1d23;}
+  .trow.addboard{cursor:pointer;}
+  .seg.locked button{opacity:.45;}
+  .trow .tw{flex:0 0 auto;}
+  .trow .tname{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:700;}
+  .trow .tarrow{flex:0 0 auto;color:var(--muted);font-size:11px;}
+  .trow .tindent{flex:0 0 18px;}
+  .trow .tdel{flex:0 0 auto;color:var(--muted);padding:2px 7px;border-radius:6px;font-weight:700;}
+  .trow .tdel:hover{color:#ff7676;background:#3a2222;}
+  .trow .tedit{flex:0 0 auto;color:var(--muted);padding:2px 7px;border-radius:6px;}
+  .trow .tedit:hover{color:var(--accent);background:#2a2519;}
+  .trow.add{color:var(--accent);font-weight:700;}
+  .tempty{color:var(--muted);font-size:12px;padding:12px;text-align:center;}
+  @media (min-width:820px){
+    body{flex-direction:row;}header{display:none;}
+    .leftpane{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;}
+    .controls{flex:0 0 372px;max-height:none;height:100%;border-top:none;border-left:1px solid var(--line);}
+    .stage{min-height:0;}
+  }
+</style>
+</head>
+<body>
+
+<header><div class="mark"></div><h1>施工写真 黒板合成</h1><span class="sub">SITE BOARD</span></header>
+
+<div class="leftpane">
+  <div class="stage">
+    <canvas id="canvas"></canvas>
+    <div class="empty" id="empty"><div class="ico">📷</div>
+      <p>「撮影する」または「アルバムから」で写真を読み込んでください。<br>黒板は<b>長押し→ドラッグ</b>で移動、写真は<b>ドラッグで移動・ピンチで拡大</b>します。</p>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <div class="toprow">
+    <button class="btn ghost" id="btnShoot" style="flex:1">撮影する</button>
+    <button class="btn ghost" id="btnPick" style="flex:1">アルバムから</button>
+  </div>
+
+  <div class="acc" id="accPhoto">
+    <div class="acc-head" data-acc="accPhoto">写真の項目<span class="chev">▶</span></div>
+    <div class="acc-body">
+      <div class="seg" style="margin-bottom:10px">
+        <button class="btn ghost sm" id="rotL" disabled style="flex:1">↺ 左90°</button>
+        <button class="btn ghost sm" id="rotR" disabled style="flex:1">↻ 右90°</button>
+        <button class="btn ghost sm" id="photoReset" disabled style="flex:1">リセット</button>
+      </div>
+      <div class="slider"><span class="name">拡大</span><input type="range" id="zoom" min="1" max="3" step="0.02" value="1" disabled><span class="val" id="zoomVal">100%</span></div>
+      <button class="btn ghost sm tg on" id="autoLand" style="margin-top:10px">縦写真を横向きにする：ON</button>
+      <button class="btn ghost sm tg on" id="portrait43" style="margin-top:8px">縦写真を4:3にする：ON</button>
+      <p class="hint">縦で撮った写真を読み込み時に自動で横向きにし、4:3に整えます（はみ出さないようフレームいっぱいに収め、ドラッグで位置調整できます）。横で撮った写真は元の比率のままです。</p>
+    </div>
+  </div>
+
+  <div class="acc open" id="accBoard">
+    <div class="acc-head" data-acc="accBoard">黒板の項目<span class="chev">▶</span></div>
+    <div class="acc-body">
+
+      <!-- 現場フォルダ（2階層・開閉式） -->
+      <button class="btn primary" id="folderCreate" style="width:100%;margin-bottom:10px">＋ フォルダを作成</button>
+      <div class="tree" id="folderTree"></div>
+      <p class="hint" id="folderStatus" style="margin:0 0 14px">フォルダを作成し、中の黒板を選んで編集します。コピー（⧉）で黒板を増やせます。編集中の黒板は自動保存されます。</p>
+
+      <p class="lbl">黒板の種類</p>
+      <div class="seg" id="typeSeg">
+        <button data-type="1" class="on">黒板1</button>
+        <button data-type="2">黒板2</button>
+        <button data-type="3">黒板3</button>
+      </div>
+
+      <p class="lbl">色</p>
+      <div class="seg" id="colorSeg">
+        <button data-color="white" class="on"><span class="sw" style="background:#fff"></span>白黒板</button>
+        <button data-color="green"><span class="sw" style="background:#1f6b46"></span>緑黒板</button>
+      </div>
+
+      <p class="lbl">黒板の幅</p>
+      <div class="slider" style="margin-bottom:12px"><span class="name">幅</span><input type="range" id="boardW" min="0.25" max="0.9" step="0.01" value="0.35"><span class="val" id="bwVal">35%</span></div>
+
+      <p class="lbl">黒板の不透明度</p>
+      <div class="slider" style="margin-bottom:12px"><span class="name">不透明度</span><input type="range" id="opacity" min="0.2" max="1" step="0.05" value="1"><span class="val" id="opacityVal">100%</span></div>
+
+      <p class="lbl">年月日（右下・グレー）</p>
+      <button class="btn ghost sm tg on" id="dateToggle" style="margin-bottom:8px">年月日を表示：ON</button>
+      <div class="field"><span class="name">日付</span><input type="text" id="f_date" placeholder="例）2026/06/25" autocomplete="off"></div>
+      <div class="szrow" style="margin-bottom:12px"><span class="szlbl">文字</span><input type="range" id="dateSz" min="0.4" max="1.4" step="0.05" value="0.7"><span class="szval" id="dateSzVal">70%</span></div>
+
+      <p class="lbl">入力と文字サイズ</p>
+
+      <!-- 黒板1 -->
+      <div id="b1ctrls">
+        <div class="fblk"><div class="field"><span class="name">工事名</span><input type="text" id="f_koji" placeholder="例）大規模修繕工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz" data-k="koji" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div></div>
+        <div class="fblk"><div class="field"><span class="name">工事場所</span><input type="text" id="f_basho" placeholder="例）東面 3階 ベランダ"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz" data-k="basho" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div></div>
+        <div class="fblk">
+          <p class="ksub">工種・上段</p>
+          <div class="field koshu"><span class="name">上段</span><input type="text" id="f_koshuTop" placeholder="例）防水工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz" data-k="koshuTop" min="0.6" max="2.2" step="0.05" value="1.1"><span class="szval">110%</span></div>
+          <p class="ksub" style="margin-top:10px">工種・下段（中央寄せ）</p>
+          <div class="field koshu"><span class="name">下段</span><input type="text" id="f_koshuBottom" placeholder="例）施工前"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz" data-k="koshuBottom" min="0.6" max="2.6" step="0.05" value="1.7"><span class="szval">170%</span></div>
+        </div>
+        <div class="fblk"><div class="field"><span class="name">施工者</span><input type="text" id="f_seko" placeholder="例）〇〇建設"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz" data-k="seko" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div></div>
+      </div>
+
+      <!-- 黒板2 -->
+      <div id="b2ctrls" style="display:none">
+        <div class="fblk"><div class="field"><span class="name">工事名</span><input type="text" id="f_b2koji" placeholder="例）大規模修繕工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz2" data-k="koji" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div></div>
+        <div class="fblk">
+          <p class="ksub">記入欄（ラベルも編集可）</p>
+          <div class="field"><span class="name">ラベル</span><input type="text" id="f_b2freeLabel" placeholder="例）工事場所"></div>
+          <div class="field"><span class="name">記入</span><input type="text" id="f_b2freeValue" placeholder="例）東面 3階 ベランダ"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz2" data-k="freeValue" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div>
+        </div>
+        <div class="fblk">
+          <p class="ksub">工種・上段（左上）</p>
+          <div class="field koshu"><span class="name">上段</span><input type="text" id="f_b2koshuTop" placeholder="例）防水工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz2" data-k="koshuTop" min="0.6" max="3" step="0.05" value="1.2"><span class="szval">120%</span></div>
+          <p class="ksub" style="margin-top:10px">工種・下段（中央）</p>
+          <div class="field koshu"><span class="name">下段</span><input type="text" id="f_b2koshuBottom" placeholder="例）施工前"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz2" data-k="koshuBottom" min="0.6" max="3.4" step="0.05" value="1.8"><span class="szval">180%</span></div>
+        </div>
+      </div>
+
+      <!-- 黒板3 -->
+      <div id="b3ctrls" style="display:none">
+        <div class="fblk"><div class="field"><span class="name">工事名</span><input type="text" id="f_b3koji" placeholder="例）大規模修繕工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz3" data-k="koji" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div></div>
+        <div class="fblk">
+          <p class="ksub">記入欄（ラベルも編集可）</p>
+          <div class="field"><span class="name">ラベル</span><input type="text" id="f_b3freeLabel" placeholder="例）記入欄"></div>
+          <div class="field"><span class="name">記入</span><input type="text" id="f_b3freeValue" placeholder="例）〇〇"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz3" data-k="freeValue" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div>
+        </div>
+        <div class="fblk">
+          <p class="ksub">工種・上段（左上）</p>
+          <div class="field koshu"><span class="name">上段</span><input type="text" id="f_b3koshuTop" placeholder="例）防水工事"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz3" data-k="koshuTop" min="0.6" max="3" step="0.05" value="1.2"><span class="szval">120%</span></div>
+          <p class="ksub" style="margin-top:10px">工種・下段（中央）</p>
+          <div class="field koshu"><span class="name">下段</span><input type="text" id="f_b3koshuBottom" placeholder="例）施工前"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz3" data-k="koshuBottom" min="0.6" max="3.4" step="0.05" value="1.8"><span class="szval">180%</span></div>
+        </div>
+        <div class="fblk">
+          <p class="ksub">施工者（ラベルも編集可）</p>
+          <div class="field"><span class="name">ラベル</span><input type="text" id="f_b3sekoLabel" placeholder="例）施工者"></div>
+          <div class="field"><span class="name">記入</span><input type="text" id="f_b3sekoValue" placeholder="例）〇〇建設"></div>
+          <div class="szrow"><span class="szlbl">文字</span><input type="range" class="sz3" data-k="sekoValue" min="0.6" max="2.2" step="0.05" value="1"><span class="szval">100%</span></div>
+        </div>
+      </div>
+
+      <p class="hint">プレビュー上の黒板は<b>長押し→ドラッグ</b>で移動できます。</p>
+    </div>
+  </div>
+
+  <p class="lbl">書き出し</p>
+  <button class="btn primary" id="exShare" disabled style="width:100%">写真に保存 / 共有</button>
+  <button class="btn ghost sm tg" id="saveClean" style="width:100%;margin-top:8px">黒板なしの写真も一緒に保存：OFF</button>
+  <p class="hint">「写真に保存 / 共有」で共有メニューが開きます。スマホでは「画像を保存」で写真フォルダに保存できます（JPG）。ONで「黒板あり」「黒板なし」の2枚を書き出します。</p>
+</div>
+
+<input type="file" id="fileShoot" accept="image/*" capture="environment" hidden>
+<input type="file" id="filePick" accept="image/*" hidden>
+
+<script>
+const $=s=>document.querySelector(s);
+const canvas=$('#canvas'); const ctx=canvas.getContext('2d');
+const FF="'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif";
+function todayStr(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}/${p(d.getMonth()+1)}/${p(d.getDate())}`;}
+
+const state={
+  photo:null,pw:0,ph:0,ow:0,oh:0,
+  rot:0,zoom:1,panX:0,panY:0,autoLandscape:true,saveClean:false,
+  portrait43:true,frameMode:'native',frameRatio:4/3,
+  boardType:1,
+  fields:{koji:'',basho:'',koshuTop:'',koshuBottom:'',seko:''},
+  sz:{koji:1,basho:1,koshuTop:1.1,koshuBottom:2.0,seko:1},
+  b2:{fields:{koji:'',freeLabel:'工事場所',freeValue:'',koshuTop:'',koshuBottom:''},sz:{koji:1,freeValue:1,koshuTop:1.2,koshuBottom:2.0}},
+  b3:{fields:{koji:'',freeLabel:'記入欄',freeValue:'',koshuTop:'',koshuBottom:'',sekoLabel:'施工者',sekoValue:''},sz:{koji:1,freeValue:1,koshuTop:1.2,koshuBottom:2.0,sekoValue:1}},
+  date:{on:true,text:todayStr(),sz:1.0},
+  color:'white',boardWFrac:0.35,opacity:1,
+  x:0,y:0,previewScale:1,boardArmed:false,
+  currentFolderId:null,currentBoardId:null
+};
+const COLORS={white:{bg:'#ffffff',ink:'#1a1a1a',line:'#333333',date:'#777777'},green:{bg:'#1f6b46',ink:'#ffffff',line:'#ffffff',date:'#bcd0c4'}};
+
+function rotDims(){return state.rot%2===1?[state.ph,state.pw]:[state.pw,state.ph];}
+function outDims(){const [rw,rh]=rotDims();if(state.frameMode==='ratio'){state.ow=rw;state.oh=Math.round(rw/state.frameRatio);}else{state.ow=rw;state.oh=rh;}}
+function coverScale(){const [rw,rh]=rotDims();return Math.max(state.ow/rw,state.oh/rh);}
+function wrap(text,maxW){if(!text)return [];const out=[];for(const para of String(text).split('\n')){let cur='';for(const ch of para){const t=cur+ch;if(ctx.measureText(t).width>maxW&&cur){out.push(cur);cur=ch;}else cur=t;}out.push(cur);}return out;}
+
+/* ============ レイアウト ============ */
+function computeLayout(){if(state.boardType===1)return layout2();if(state.boardType===3)return layout3();return layout1();}
+function mkLR(label,val,sz,base,bw,labelW,pad){const font=base*sz;ctx.font=`700 ${font}px ${FF}`;const lines=wrap(val,(bw-labelW)-pad*2);const lh=font*1.30;const rowH=Math.max(lines.length*lh+pad*1.5,font*2.1);return {label,lines,font,lh,rowH};}
+function koshuArea(tText,bText,tSz,bSz,base,bw,pad,dStrip){
+  const tFont=base*tSz,bFont=base*bSz;
+  ctx.font=`600 ${tFont}px ${FF}`;const tLines=wrap(tText,bw-pad*2);const tLH=tFont*1.30;
+  ctx.font=`800 ${bFont}px ${FF}`;const bLines=wrap(bText,bw-pad*2);const bLH=bFont*1.30;
+  const upperBlock=tLines.length*tLH,lowerBlock=bLines.length*bLH;
+  const areaH=Math.max(upperBlock+lowerBlock+pad*4+dStrip,bw*0.5);
+  return {tLines,tFont,tLH,bLines,bFont,bLH,upperBlock,areaH};
+}
+function layout1(){
+  const bw=state.ow*state.boardWFrac,labelW=bw*0.30,valW=bw-labelW,pad=bw*0.030,base=bw*0.050;
+  const F=state.fields,S=state.sz,valMax=valW-pad*2;
+  const dFont=base*state.date.sz;
+  const mkN=(label,val,k)=>{const font=base*S[k];ctx.font=`500 ${font}px ${FF}`;const lines=wrap(val,valMax);const lh=font*1.30;const rowH=Math.max(lines.length*lh+pad*1.4,font*2.0);return {kind:'n',label,lines,font,lh,rowH};};
+  const tFont=base*S.koshuTop,bFont=base*S.koshuBottom;
+  ctx.font=`600 ${tFont}px ${FF}`;const tLines=wrap(F.koshuTop,valMax);const tLH=tFont*1.25;
+  ctx.font=`800 ${bFont}px ${FF}`;const bLines=wrap(F.koshuBottom,valMax);const bLH=bFont*1.25;
+  const topH=Math.max(tLines.length*tLH+pad*1.2,tFont*1.7);
+  const botH=Math.max(bLines.length*bLH+pad*2.6,bFont*2.0);   // 年月日ON/OFFで変化させない
+  const koshu={kind:'k',label:'工種',tLines,tFont,tLH,topH,bLines,bFont,bLH,botH,rowH:topH+botH};
+  const rows=[mkN('工事名',F.koji,'koji'),mkN('工事場所',F.basho,'basho'),koshu,mkN('施工者',F.seko,'seko')];
+  const totalH=rows.reduce((s,r)=>s+r.rowH,0);
+  return {type:1,bw,labelW,pad,base,dFont,rows,totalH};
+}
+function layout2(){
+  const bw=state.ow*state.boardWFrac,labelW=bw*0.27,pad=bw*0.030,base=bw*0.050;
+  const F=state.b2.fields,S=state.b2.sz,dFont=base*state.date.sz,dStrip=state.date.on?dFont*1.7:0;
+  const r1=mkLR('工事名',F.koji,S.koji,base,bw,labelW,pad);
+  const rf=mkLR(F.freeLabel||'',F.freeValue,S.freeValue,base,bw,labelW,pad);
+  const K=koshuArea(F.koshuTop,F.koshuBottom,S.koshuTop,S.koshuBottom,base,bw,pad,dStrip);
+  const headerH=r1.rowH+rf.rowH;
+  return {type:2,bw,labelW,pad,base,dFont,dStrip,r1,rf,K,headerH,totalH:headerH+K.areaH};
+}
+function layout3(){
+  const bw=state.ow*state.boardWFrac,labelW=bw*0.27,pad=bw*0.030,base=bw*0.050;
+  const F=state.b3.fields,S=state.b3.sz,dFont=base*state.date.sz,dStrip=state.date.on?dFont*1.7:0;
+  const r1=mkLR('工事名',F.koji,S.koji,base,bw,labelW,pad);
+  const rf=mkLR(F.freeLabel||'',F.freeValue,S.freeValue,base,bw,labelW,pad);
+  const K=koshuArea(F.koshuTop,F.koshuBottom,S.koshuTop,S.koshuBottom,base,bw,pad,dStrip);
+  const rs=mkLR(F.sekoLabel||'',F.sekoValue,S.sekoValue,base,bw,labelW,pad);
+  const totalH=r1.rowH+rf.rowH+K.areaH+rs.rowH;
+  return {type:3,bw,labelW,pad,base,dFont,dStrip,r1,rf,K,rs,totalH};
+}
+
+/* ============ 描画 ============ */
+function renderBoard(c,L,ox,oy,s,armed){
+  if(L.type===2)render2(c,L,ox,oy,s);else if(L.type===3)render3(c,L,ox,oy,s);else render1(c,L,ox,oy,s);
+  if(armed){const lw=Math.max(2,L.bw*0.005*s*1.5);c.save();c.setLineDash([12*s,8*s]);c.lineWidth=lw;c.strokeStyle='#ffb300';c.strokeRect(ox-4*s,oy-4*s,L.bw*s+8*s,L.totalH*s+8*s);c.restore();}
+}
+function drawLR(c,r,yTop,ox,bwB,labelWB,padB,labelFontB,s,col){
+  const rh=r.rowH*s,labelW=labelWB*s,pad=padB*s;
+  c.fillStyle=col.ink;c.font=`700 ${labelFontB*s}px ${FF}`;c.textAlign='center';c.textBaseline='middle';
+  c.fillText(r.label,ox+labelW/2,yTop+rh/2);
+  c.font=`700 ${r.font*s}px ${FF}`;c.textAlign='left';
+  const lh=r.lh*s,blockH=r.lines.length*lh;let ty=yTop+rh/2-blockH/2+lh/2;
+  for(const ln of r.lines){c.fillText(ln,ox+labelW+pad,ty);ty+=lh;}
+  c.beginPath();c.moveTo(ox+labelW,yTop);c.lineTo(ox+labelW,yTop+rh);c.stroke();
+  return rh;
+}
+function drawKoshu(c,K,ox,areaTop,bwB,padB,dFontB,dStripB,s,col){
+  const bw=bwB*s,pad=padB*s,areaH=K.areaH*s,dStrip=dStripB*s;
+  const tf=K.tFont*s,tlh=K.tLH*s,bf=K.bFont*s,blh=K.bLH*s;
+  c.fillStyle=col.ink;c.textAlign='left';c.textBaseline='top';c.font=`600 ${tf}px ${FF}`;
+  let uy=areaTop+pad*0.9;for(const ln of K.tLines){c.fillText(ln,ox+pad,uy);uy+=tlh;}
+  const regTop=areaTop+(K.tLines.length?K.upperBlock*s+pad*1.0:0),regBot=areaTop+areaH-dStrip;
+  c.textAlign='center';c.textBaseline='middle';c.font=`800 ${bf}px ${FF}`;
+  let bh=K.bLines.length*blh,ly=(regTop+regBot)/2-bh/2+blh/2;
+  for(const ln of K.bLines){c.fillText(ln,ox+bw/2,ly);ly+=blh;}
+  if(state.date.on&&state.date.text){c.fillStyle=col.date;c.font=`700 ${dFontB*s}px ${FF}`;c.textAlign='right';c.textBaseline='alphabetic';c.fillText(state.date.text,ox+bw-pad*0.9,areaTop+areaH-pad*0.7);}
+}
+function render1(c,L,ox,oy,s){
+  const col=COLORS[state.color];
+  const bw=L.bw*s,totalH=L.totalH*s,labelW=L.labelW*s,pad=L.pad*s,lw=Math.max(1,L.bw*0.005*s),labelFont=L.base*0.84*s;
+  c.save();c.globalAlpha=state.opacity;c.fillStyle=col.bg;c.fillRect(ox,oy,bw,totalH);c.restore();c.strokeStyle=col.line;c.lineWidth=lw;
+  let y=oy;
+  for(let i=0;i<L.rows.length;i++){
+    const r=L.rows[i],rh=r.rowH*s;
+    c.fillStyle=col.ink;c.font=`700 ${labelFont}px ${FF}`;c.textAlign='center';c.textBaseline='middle';
+    c.fillText(r.label,ox+labelW/2,y+rh/2);
+    c.textAlign='left';c.textBaseline='middle';
+    if(r.kind==='n'){
+      const font=r.font*s,lh=r.lh*s;c.font=`500 ${font}px ${FF}`;
+      const blockH=r.lines.length*lh;let ty=y+rh/2-blockH/2+lh/2;
+      for(const ln of r.lines){c.fillText(ln,ox+labelW+pad,ty);ty+=lh;}
+    }else{
+      const tf=r.tFont*s,tlh=r.tLH*s,topH=r.topH*s;
+      c.font=`600 ${tf}px ${FF}`;let bh=r.tLines.length*tlh,ty=y+topH/2-bh/2+tlh/2;
+      for(const ln of r.tLines){c.fillText(ln,ox+labelW+pad,ty);ty+=tlh;}
+      const bf=r.bFont*s,blh=r.bLH*s,regTop=y+topH,regBot=y+rh;
+      c.fillStyle=col.ink;c.font=`800 ${bf}px ${FF}`;c.textAlign='center';c.textBaseline='middle';
+      const cx=ox+labelW+(bw-labelW)/2,cy=(regTop+regBot)/2;let bh2=r.bLines.length*blh,ty2=cy-bh2/2+blh/2;
+      for(const ln of r.bLines){c.fillText(ln,cx,ty2);ty2+=blh;}
+      if(state.date.on&&state.date.text){c.fillStyle=col.date;c.font=`700 ${L.dFont*s}px ${FF}`;c.textAlign='right';c.textBaseline='alphabetic';c.fillText(state.date.text,ox+bw-pad*0.6,y+rh-pad*0.5);}
+    }
+    if(i<L.rows.length-1){c.beginPath();c.moveTo(ox,y+rh);c.lineTo(ox+bw,y+rh);c.stroke();}
+    y+=rh;
+  }
+  c.beginPath();c.moveTo(ox+labelW,oy);c.lineTo(ox+labelW,oy+totalH);c.stroke();
+  c.lineWidth=lw*1.6;c.strokeRect(ox,oy,bw,totalH);
+}
+function render2(c,L,ox,oy,s){
+  const col=COLORS[state.color];const bw=L.bw*s,totalH=L.totalH*s,lw=Math.max(1,L.bw*0.005*s),labelFont=L.base*0.84;
+  c.save();c.globalAlpha=state.opacity;c.fillStyle=col.bg;c.fillRect(ox,oy,bw,totalH);c.restore();c.strokeStyle=col.line;c.lineWidth=lw;
+  let y=oy;
+  const h1=drawLR(c,L.r1,y,ox,L.bw,L.labelW,L.pad,labelFont,s,col);c.beginPath();c.moveTo(ox,y+h1);c.lineTo(ox+bw,y+h1);c.stroke();y+=h1;
+  const h2=drawLR(c,L.rf,y,ox,L.bw,L.labelW,L.pad,labelFont,s,col);c.beginPath();c.moveTo(ox,y+h2);c.lineTo(ox+bw,y+h2);c.stroke();y+=h2;
+  drawKoshu(c,L.K,ox,y,L.bw,L.pad,L.dFont,L.dStrip,s,col);
+  c.strokeStyle=col.line;c.lineWidth=lw*1.6;c.strokeRect(ox,oy,bw,totalH);
+}
+function render3(c,L,ox,oy,s){
+  const col=COLORS[state.color];const bw=L.bw*s,totalH=L.totalH*s,lw=Math.max(1,L.bw*0.005*s),labelFont=L.base*0.84;
+  c.save();c.globalAlpha=state.opacity;c.fillStyle=col.bg;c.fillRect(ox,oy,bw,totalH);c.restore();c.strokeStyle=col.line;c.lineWidth=lw;
+  let y=oy;
+  let h=drawLR(c,L.r1,y,ox,L.bw,L.labelW,L.pad,labelFont,s,col);c.beginPath();c.moveTo(ox,y+h);c.lineTo(ox+bw,y+h);c.stroke();y+=h;
+  h=drawLR(c,L.rf,y,ox,L.bw,L.labelW,L.pad,labelFont,s,col);c.beginPath();c.moveTo(ox,y+h);c.lineTo(ox+bw,y+h);c.stroke();y+=h;
+  drawKoshu(c,L.K,ox,y,L.bw,L.pad,L.dFont,L.dStrip,s,col);y+=L.K.areaH*s;c.beginPath();c.moveTo(ox,y);c.lineTo(ox+bw,y);c.stroke();
+  drawLR(c,L.rs,y,ox,L.bw,L.labelW,L.pad,labelFont,s,col);
+  c.strokeStyle=col.line;c.lineWidth=lw*1.6;c.strokeRect(ox,oy,bw,totalH);
+}
+
+function drawPhoto(c,s){const cs=coverScale();c.save();c.scale(s,s);c.translate(state.ow/2+state.panX,state.oh/2+state.panY);c.rotate(state.rot*Math.PI/2);c.scale(cs*state.zoom,cs*state.zoom);c.drawImage(state.photo,-state.pw/2,-state.ph/2,state.pw,state.ph);c.restore();}
+function draw(){
+  if(!state.photo)return;
+  const stage=$('.stage');const maxW=stage.clientWidth-24,maxH=stage.clientHeight-24;
+  const fit=Math.min(maxW/state.ow,maxH/state.oh);const dpr=Math.min(window.devicePixelRatio||1,2.5);
+  const cssW=state.ow*fit,cssH=state.oh*fit;
+  canvas.style.width=cssW+'px';canvas.style.height=cssH+'px';
+  canvas.width=Math.round(cssW*dpr);canvas.height=Math.round(cssH*dpr);
+  state.previewScale=canvas.width/state.ow;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawPhoto(ctx,state.previewScale);
+  const L=computeLayout();
+  renderBoard(ctx,L,state.x*state.previewScale,state.y*state.previewScale,state.previewScale,state.boardArmed);
+}
+function touch(){ draw(); scheduleAutosave(); }
+
+/* ============ 読み込み ============ */
+function loadFile(file){
+  if(!file)return;const img=new Image();
+  img.onload=()=>{
+    state.photo=img;state.pw=img.naturalWidth;state.ph=img.naturalHeight;
+    state.rot=(state.autoLandscape&&state.ph>state.pw)?1:0;
+    state.frameMode=(state.portrait43&&state.ph>state.pw)?'ratio':'native';
+    state.zoom=1;state.panX=0;state.panY=0;state.boardArmed=false;
+    $('#zoom').value=1;$('#zoomVal').textContent='100%';outDims();const L=computeLayout();
+    state.x=state.ow*0.04;state.y=Math.max(state.oh*0.04,state.oh-L.totalH-state.oh*0.04);
+    canvas.style.display='block';$('#empty').style.display='none';
+    ['#exShare','#rotL','#rotR','#photoReset','#zoom'].forEach(s=>$(s).disabled=false);draw();
+  };
+  img.onerror=()=>alert('画像を読み込めませんでした。');img.src=URL.createObjectURL(file);
+}
+$('#fileShoot').addEventListener('change',e=>loadFile(e.target.files[0]));
+$('#filePick').addEventListener('change',e=>loadFile(e.target.files[0]));
+$('#btnShoot').onclick=()=>$('#fileShoot').click();
+$('#btnPick').onclick=()=>$('#filePick').click();
+document.querySelectorAll('.acc-head').forEach(h=>{h.onclick=()=>$('#'+h.dataset.acc).classList.toggle('open');});
+
+/* ============ 写真 ============ */
+function rotate(dir){state.rot=(state.rot+(dir>0?1:3))%4;outDims();state.panX=0;state.panY=0;clampBoard();clampPan();draw();}
+$('#rotR').onclick=()=>rotate(1);$('#rotL').onclick=()=>rotate(-1);
+$('#photoReset').onclick=()=>{state.rot=(state.autoLandscape&&state.ph>state.pw)?1:0;state.zoom=1;state.panX=0;state.panY=0;$('#zoom').value=1;$('#zoomVal').textContent='100%';outDims();clampBoard();draw();};
+$('#zoom').addEventListener('input',e=>{state.zoom=parseFloat(e.target.value);$('#zoomVal').textContent=Math.round(state.zoom*100)+'%';clampPan();draw();});
+$('#autoLand').onclick=()=>{state.autoLandscape=!state.autoLandscape;const b=$('#autoLand');b.classList.toggle('on',state.autoLandscape);b.textContent='縦写真を横向きにする：'+(state.autoLandscape?'ON':'OFF');if(state.photo){state.rot=(state.autoLandscape&&state.ph>state.pw)?1:0;state.panX=0;state.panY=0;outDims();clampBoard();draw();}};
+$('#portrait43').onclick=()=>{state.portrait43=!state.portrait43;const b=$('#portrait43');b.classList.toggle('on',state.portrait43);b.textContent='縦写真を4:3にする：'+(state.portrait43?'ON':'OFF');if(state.photo){state.frameMode=(state.portrait43&&state.ph>state.pw)?'ratio':'native';state.panX=0;state.panY=0;outDims();clampBoard();draw();}};
+function clampPan(){const cs=coverScale();const [rw,rh]=rotDims();const fullW=rw*cs*state.zoom,fullH=rh*cs*state.zoom;const mx=Math.max(0,(fullW-state.ow)/2),my=Math.max(0,(fullH-state.oh)/2);state.panX=Math.min(mx,Math.max(-mx,state.panX));state.panY=Math.min(my,Math.max(-my,state.panY));}
+
+/* ============ 黒板編集 ============ */
+$('#typeSeg').querySelectorAll('button').forEach(b=>{b.onclick=()=>{if(!state.currentBoardId){setStatus('黒板を作成・選択してから種類を変更してください。');return;}state.boardType=+b.dataset.type;updateUI();clampBoard();touch();};});
+const bind=(id,key)=>$(id).addEventListener('input',e=>{state.fields[key]=e.target.value;touch();});
+bind('#f_koji','koji');bind('#f_basho','basho');bind('#f_koshuTop','koshuTop');bind('#f_koshuBottom','koshuBottom');bind('#f_seko','seko');
+const bind2=(id,key)=>$(id).addEventListener('input',e=>{state.b2.fields[key]=e.target.value;touch();});
+bind2('#f_b2koji','koji');bind2('#f_b2freeLabel','freeLabel');bind2('#f_b2freeValue','freeValue');bind2('#f_b2koshuTop','koshuTop');bind2('#f_b2koshuBottom','koshuBottom');
+const bind3=(id,key)=>$(id).addEventListener('input',e=>{state.b3.fields[key]=e.target.value;touch();});
+bind3('#f_b3koji','koji');bind3('#f_b3freeLabel','freeLabel');bind3('#f_b3freeValue','freeValue');bind3('#f_b3koshuTop','koshuTop');bind3('#f_b3koshuBottom','koshuBottom');bind3('#f_b3sekoLabel','sekoLabel');bind3('#f_b3sekoValue','sekoValue');
+
+document.querySelectorAll('#b1ctrls .sz').forEach(sl=>{sl.addEventListener('input',e=>{const k=e.target.dataset.k;state.sz[k]=parseFloat(e.target.value);e.target.parentElement.querySelector('.szval').textContent=Math.round(state.sz[k]*100)+'%';touch();});});
+document.querySelectorAll('#b2ctrls .sz2').forEach(sl=>{sl.addEventListener('input',e=>{const k=e.target.dataset.k;state.b2.sz[k]=parseFloat(e.target.value);e.target.parentElement.querySelector('.szval').textContent=Math.round(state.b2.sz[k]*100)+'%';touch();});});
+document.querySelectorAll('#b3ctrls .sz3').forEach(sl=>{sl.addEventListener('input',e=>{const k=e.target.dataset.k;state.b3.sz[k]=parseFloat(e.target.value);e.target.parentElement.querySelector('.szval').textContent=Math.round(state.b3.sz[k]*100)+'%';touch();});});
+
+$('#colorSeg').querySelectorAll('button').forEach(b=>{b.onclick=()=>{$('#colorSeg').querySelectorAll('button').forEach(x=>x.classList.remove('on'));b.classList.add('on');state.color=b.dataset.color;touch();};});
+$('#boardW').addEventListener('input',e=>{state.boardWFrac=parseFloat(e.target.value);$('#bwVal').textContent=Math.round(state.boardWFrac*100)+'%';clampBoard();touch();});
+$('#opacity').addEventListener('input',e=>{state.opacity=parseFloat(e.target.value);$('#opacityVal').textContent=Math.round(state.opacity*100)+'%';touch();});
+$('#dateToggle').onclick=()=>{state.date.on=!state.date.on;const b=$('#dateToggle');b.classList.toggle('on',state.date.on);b.textContent='年月日を表示：'+(state.date.on?'ON':'OFF');clampBoard();touch();};
+$('#f_date').addEventListener('input',e=>{state.date.text=e.target.value;touch();});
+$('#dateSz').addEventListener('input',e=>{state.date.sz=parseFloat(e.target.value);$('#dateSzVal').textContent=Math.round(state.date.sz*100)+'%';clampBoard();touch();});
+
+function setSz(sel,obj){document.querySelectorAll(sel).forEach(sl=>{const k=sl.dataset.k;sl.value=obj[k];sl.parentElement.querySelector('.szval').textContent=Math.round(obj[k]*100)+'%';});}
+function updateUI(){
+  $('#typeSeg').classList.toggle('locked',!state.currentBoardId);
+  $('#typeSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.type===state.boardType));
+  $('#b1ctrls').style.display=state.boardType===2?'block':'none';
+  $('#b2ctrls').style.display=state.boardType===1?'block':'none';
+  $('#b3ctrls').style.display=state.boardType===3?'block':'none';
+  $('#f_koji').value=state.fields.koji;$('#f_basho').value=state.fields.basho;$('#f_koshuTop').value=state.fields.koshuTop;$('#f_koshuBottom').value=state.fields.koshuBottom;$('#f_seko').value=state.fields.seko;
+  setSz('#b1ctrls .sz',state.sz);
+  $('#f_b2koji').value=state.b2.fields.koji;$('#f_b2freeLabel').value=state.b2.fields.freeLabel;$('#f_b2freeValue').value=state.b2.fields.freeValue;$('#f_b2koshuTop').value=state.b2.fields.koshuTop;$('#f_b2koshuBottom').value=state.b2.fields.koshuBottom;
+  setSz('#b2ctrls .sz2',state.b2.sz);
+  $('#f_b3koji').value=state.b3.fields.koji;$('#f_b3freeLabel').value=state.b3.fields.freeLabel;$('#f_b3freeValue').value=state.b3.fields.freeValue;$('#f_b3koshuTop').value=state.b3.fields.koshuTop;$('#f_b3koshuBottom').value=state.b3.fields.koshuBottom;$('#f_b3sekoLabel').value=state.b3.fields.sekoLabel;$('#f_b3sekoValue').value=state.b3.fields.sekoValue;
+  setSz('#b3ctrls .sz3',state.b3.sz);
+  $('#boardW').value=state.boardWFrac;$('#bwVal').textContent=Math.round(state.boardWFrac*100)+'%';
+  $('#opacity').value=state.opacity;$('#opacityVal').textContent=Math.round(state.opacity*100)+'%';
+  $('#colorSeg').querySelectorAll('button').forEach(b=>b.classList.toggle('on',b.dataset.color===state.color));
+  $('#f_date').value=state.date.text;const dt=$('#dateToggle');dt.classList.toggle('on',state.date.on);dt.textContent='年月日を表示：'+(state.date.on?'ON':'OFF');
+  $('#dateSz').value=state.date.sz;$('#dateSzVal').textContent=Math.round(state.date.sz*100)+'%';
+}
+
+/* ============ 黒板フォルダ（フォルダ＋複数黒板・自動保存） ============ */
+const LS='kokuban_folders_v8';
+function loadFolders(){try{return JSON.parse(localStorage.getItem(LS))||[];}catch(e){return [];}}
+function saveFolders(){try{localStorage.setItem(LS,JSON.stringify(folders));}catch(e){}}
+let folders=loadFolders();
+function captureState(){return {boardType:state.boardType,fields:{...state.fields},sz:{...state.sz},
+  b2:{fields:{...state.b2.fields},sz:{...state.b2.sz}},b3:{fields:{...state.b3.fields},sz:{...state.b3.sz}},
+  date:{...state.date},color:state.color,boardWFrac:state.boardWFrac,opacity:state.opacity};}
+let suppressAutosave=false;
+function applyState(d){
+  suppressAutosave=true;
+  if(d.boardType)state.boardType=d.boardType;
+  if(d.fields)state.fields={...state.fields,...d.fields};
+  if(d.sz)state.sz={...state.sz,...d.sz};
+  if(d.b2){state.b2.fields={...state.b2.fields,...(d.b2.fields||{})};state.b2.sz={...state.b2.sz,...(d.b2.sz||{})};}
+  if(d.b3){state.b3.fields={...state.b3.fields,...(d.b3.fields||{})};state.b3.sz={...state.b3.sz,...(d.b3.sz||{})};}
+  if(d.date)state.date={...state.date,...d.date};
+  if(d.color)state.color=d.color;
+  if(typeof d.boardWFrac==='number')state.boardWFrac=d.boardWFrac;
+  if(typeof d.opacity==='number')state.opacity=d.opacity;
+  updateUI();if(state.photo){clampBoard();draw();}
+  suppressAutosave=false;
+}
+let autosaveTimer=null;
+function scheduleAutosave(){
+  if(suppressAutosave||!state.currentBoardId)return;
+  clearTimeout(autosaveTimer);
+  autosaveTimer=setTimeout(()=>{
+    const r=findBoard(state.currentBoardId);if(!r)return;
+    r.board.data=captureState();saveFolders();
+    const cv=document.querySelector('.brow[data-board="'+state.currentBoardId+'"] .bthumb');if(cv)renderThumb(cv,r.board.data);
+    setStatus('自動保存しました（'+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+'）');
+  },500);
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function findFolder(id){return folders.find(f=>f.id===id)||null;}
+function findBoard(id){for(const f of folders){const b=f.boards.find(x=>x.id===id);if(b)return {folder:f,board:b};}return null;}
+function setStatus(t){$('#folderStatus').textContent=t;}
+function lockTypes(){$('#typeSeg').classList.toggle('locked',!state.currentBoardId);}
+
+/* 黒板サムネイル（中身文字込み） */
+function applyTempBoard(data){
+  const keys=['boardType','fields','sz','b2','b3','date','color','boardWFrac','opacity','ow','oh','rot','zoom','panX','panY','frameMode'];
+  const bak={};keys.forEach(k=>bak[k]=state[k]);
+  state.boardType=data.boardType||1;
+  state.fields={koji:'',basho:'',koshuTop:'',koshuBottom:'',seko:'',...(data.fields||{})};
+  state.sz={koji:1,basho:1,koshuTop:1.1,koshuBottom:2,seko:1,...(data.sz||{})};
+  state.b2={fields:{koji:'',freeLabel:'工事場所',freeValue:'',koshuTop:'',koshuBottom:'',...((data.b2&&data.b2.fields)||{})},sz:{koji:1,freeValue:1,koshuTop:1.2,koshuBottom:2,...((data.b2&&data.b2.sz)||{})}};
+  state.b3={fields:{koji:'',freeLabel:'記入欄',freeValue:'',koshuTop:'',koshuBottom:'',sekoLabel:'施工者',sekoValue:'',...((data.b3&&data.b3.fields)||{})},sz:{koji:1,freeValue:1,koshuTop:1.2,koshuBottom:2,sekoValue:1,...((data.b3&&data.b3.sz)||{})}};
+  state.date={on:true,text:'',sz:1,...(data.date||{})};
+  state.color=data.color||'white';
+  return ()=>keys.forEach(k=>state[k]=bak[k]);
+}
+function renderThumb(cv,data){
+  const restore=applyTempBoard(data);
+  const W=1000;state.ow=W;state.boardWFrac=1;state.opacity=1;
+  let L;try{L=computeLayout();}catch(e){restore();return;}
+  const dispW=84,scale=dispW/W,dispH=Math.max(16,L.totalH*scale);
+  const dpr=Math.min(window.devicePixelRatio||1,2);
+  cv.style.width=dispW+'px';cv.style.height=dispH+'px';
+  cv.width=Math.round(dispW*dpr);cv.height=Math.round(dispH*dpr);
+  const c=cv.getContext('2d');c.clearRect(0,0,cv.width,cv.height);
+  renderBoard(c,L,0,0,scale*dpr,false);
+  restore();
+}
+
+const expanded=new Set();
+function createFolder(){const f={id:uid(),name:'フォルダ'+(folders.length+1),boards:[]};folders.push(f);expanded.add(f.id);addBoard(f.id);}
+function addBoard(folderId){const f=findFolder(folderId);if(!f)return;const nm='黒板'+(f.boards.length+1);const b={id:uid(),name:nm,data:captureState()};f.boards.push(b);state.currentBoardId=b.id;expanded.add(f.id);saveFolders();renderTree();setStatus('「'+f.name+' / '+nm+'」を作成しました（編集内容を自動保存）。');}
+function editBoard(id){const r=findBoard(id);if(!r)return;state.currentBoardId=id;applyState(r.board.data);renderTree();setStatus('「'+r.folder.name+' / '+r.board.name+'」を編集中（自動保存）。');}
+function copyBoard(id){const r=findBoard(id);if(!r)return;const copy={id:uid(),name:r.board.name+' のコピー',data:JSON.parse(JSON.stringify(r.board.data))};const i=r.folder.boards.findIndex(x=>x.id===id);r.folder.boards.splice(i+1,0,copy);state.currentBoardId=copy.id;applyState(copy.data);saveFolders();renderTree();setStatus('黒板をコピーしました（フォルダ内に追加）。');}
+function deleteBoard(id){const r=findBoard(id);if(!r)return;if(!confirm('黒板「'+r.board.name+'」を削除しますか？'))return;r.folder.boards=r.folder.boards.filter(x=>x.id!==id);if(state.currentBoardId===id)state.currentBoardId=null;saveFolders();renderTree();}
+function deleteFolder(id){const f=findFolder(id);if(!f)return;if(!confirm('フォルダ「'+f.name+'」と中の黒板を全て削除しますか？'))return;if(f.boards.some(b=>b.id===state.currentBoardId))state.currentBoardId=null;folders=folders.filter(x=>x.id!==id);saveFolders();renderTree();}
+
+let dragState=null;
+function startBoardDrag(folder,boardId,e){
+  e.preventDefault();
+  const t=$('#folderTree');
+  const ids=folder.boards.map(b=>b.id);
+  const rows=[...t.querySelectorAll('.brow')].filter(r=>ids.includes(r.dataset.board)).map(el=>({id:el.dataset.board,el}));
+  dragState={folder,boardId,rows,targetIndex:null};
+  const dragged=rows.find(r=>r.id===boardId);if(dragged)dragged.el.classList.add('dragging');
+  window.addEventListener('pointermove',onBoardDragMove);
+  window.addEventListener('pointerup',onBoardDragEnd,{once:true});
+  window.addEventListener('pointercancel',onBoardDragEnd,{once:true});
+}
+function onBoardDragMove(e){
+  if(!dragState)return;
+  const y=e.clientY;let idx=0;
+  for(const r of dragState.rows){const rc=r.el.getBoundingClientRect();if(y>(rc.top+rc.bottom)/2)idx++;}
+  dragState.targetIndex=idx;
+  dragState.rows.forEach((r,i)=>r.el.classList.toggle('drop-before',i===idx));
+}
+function onBoardDragEnd(){
+  window.removeEventListener('pointermove',onBoardDragMove);
+  if(!dragState)return;
+  const {folder,boardId,targetIndex}=dragState;
+  dragState.rows.forEach(r=>r.el.classList.remove('drop-before','dragging'));
+  if(targetIndex!=null){
+    const from=folder.boards.findIndex(b=>b.id===boardId);
+    if(from>=0){const [m]=folder.boards.splice(from,1);let to=targetIndex;if(to>from)to--;folder.boards.splice(to,0,m);saveFolders();}
+  }
+  dragState=null;renderTree();
+}
+
+function renderTree(){
+  const t=$('#folderTree');t.innerHTML='';
+  if(!folders.length){t.innerHTML='<div class="tempty">「＋フォルダを作成」から始めてください。</div>';lockTypes();return;}
+  folders.forEach(folder=>{
+    const open=expanded.has(folder.id);
+    const frow=document.createElement('div');frow.className='trow folder';
+    const arrow=document.createElement('span');arrow.className='tarrow';arrow.textContent=open?'▼':'▶';
+    arrow.onclick=()=>{if(open)expanded.delete(folder.id);else expanded.add(folder.id);renderTree();};
+    const ic=document.createElement('span');ic.className='tw';ic.textContent='📁';
+    const fname=document.createElement('input');fname.type='text';fname.className='fname';fname.value=folder.name;fname.placeholder='フォルダ名';
+    fname.oninput=()=>{folder.name=fname.value;saveFolders();};
+    const fdel=document.createElement('span');fdel.className='tdel';fdel.textContent='✕';fdel.title='フォルダ削除';fdel.onclick=()=>deleteFolder(folder.id);
+    frow.appendChild(arrow);frow.appendChild(ic);frow.appendChild(fname);frow.appendChild(fdel);
+    t.appendChild(frow);
+    if(open){
+      folder.boards.forEach(b=>{
+        const brow=document.createElement('div');brow.className='brow'+(b.id===state.currentBoardId?' active':'');brow.dataset.board=b.id;
+        const grip=document.createElement('span');grip.className='bgrip';grip.textContent='⠿';grip.title='ドラッグで並び替え';grip.addEventListener('pointerdown',ev=>startBoardDrag(folder,b.id,ev));
+        const copy=document.createElement('span');copy.className='bbtn bcopy';copy.textContent='⧉';copy.title='この黒板をコピー';copy.onclick=()=>copyBoard(b.id);
+        const cv=document.createElement('canvas');cv.className='bthumb';cv.title='クリックで編集';cv.onclick=()=>editBoard(b.id);
+        const col=document.createElement('div');col.className='bactions';
+        const bname=document.createElement('input');bname.type='text';bname.className='bname';bname.value=b.name;bname.placeholder='黒板名';bname.oninput=()=>{b.name=bname.value;saveFolders();};
+        const bdel=document.createElement('span');bdel.className='bbtn bdel';bdel.textContent='✕';bdel.title='削除';bdel.onclick=()=>deleteBoard(b.id);
+        col.appendChild(bname);col.appendChild(bdel);
+        brow.appendChild(grip);brow.appendChild(copy);brow.appendChild(cv);brow.appendChild(col);
+        t.appendChild(brow);
+        renderThumb(cv,b.data);
+      });
+      const add=document.createElement('div');add.className='trow addboard';
+      add.innerHTML='<span class="tindent" style="flex:0 0 16px"></span><span class="tname" style="color:var(--accent);font-weight:700">＋ 黒板を追加</span>';
+      add.onclick=()=>addBoard(folder.id);
+      t.appendChild(add);
+    }
+  });
+  lockTypes();
+}
+$('#folderCreate').onclick=createFolder;
+renderTree();
+
+/* ============ 操作 ============ */
+const pts=new Map();let pinchStart=null,lpTimer=null,pendingBoard=false,downX=0,downY=0;
+function toOut(e){const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*(canvas.width/r.width)/state.previewScale,y:(e.clientY-r.top)*(canvas.height/r.height)/state.previewScale};}
+function inBoard(p){const L=computeLayout();return p.x>=state.x&&p.x<=state.x+L.bw&&p.y>=state.y&&p.y<=state.y+L.totalH;}
+function clampBoard(){const L=computeLayout();state.x=Math.min(Math.max(state.x,-L.bw*0.15),state.ow-L.bw*0.85);state.y=Math.min(Math.max(state.y,-L.totalH*0.15),state.oh-L.totalH*0.85);}
+canvas.addEventListener('pointerdown',e=>{
+  if(!state.photo)return;canvas.setPointerCapture(e.pointerId);pts.set(e.pointerId,toOut(e));
+  if(pts.size===2){clearTimeout(lpTimer);pendingBoard=false;state.boardArmed=false;const [a,b]=[...pts.values()];pinchStart={dist:Math.hypot(a.x-b.x,a.y-b.y),zoom:state.zoom};draw();return;}
+  downX=e.clientX;downY=e.clientY;state.boardArmed=false;
+  if(inBoard(toOut(e))){pendingBoard=true;lpTimer=setTimeout(()=>{if(pendingBoard){state.boardArmed=true;pendingBoard=false;navigator.vibrate&&navigator.vibrate(15);draw();}},380);}else pendingBoard=false;
+});
+canvas.addEventListener('pointermove',e=>{
+  if(!pts.has(e.pointerId))return;const prev=pts.get(e.pointerId),now=toOut(e);pts.set(e.pointerId,now);
+  if(pts.size===2&&pinchStart){const [a,b]=[...pts.values()];const ratio=Math.hypot(a.x-b.x,a.y-b.y)/pinchStart.dist;state.zoom=Math.min(3,Math.max(1,pinchStart.zoom*ratio));$('#zoom').value=state.zoom;$('#zoomVal').textContent=Math.round(state.zoom*100)+'%';clampPan();draw();return;}
+  if(pts.size!==1)return;const dx=now.x-prev.x,dy=now.y-prev.y;
+  if(state.boardArmed){state.x+=dx;state.y+=dy;clampBoard();draw();return;}
+  if(pendingBoard){if(Math.hypot(e.clientX-downX,e.clientY-downY)>10){pendingBoard=false;clearTimeout(lpTimer);}else return;}
+  state.panX+=dx;state.panY+=dy;clampPan();draw();
+});
+function endPt(e){clearTimeout(lpTimer);pendingBoard=false;pts.delete(e.pointerId);if(pts.size<2)pinchStart=null;if(pts.size===0&&state.boardArmed){state.boardArmed=false;draw();}}
+canvas.addEventListener('pointerup',endPt);canvas.addEventListener('pointercancel',endPt);
+
+/* ============ 書き出し ============ */
+function render(withBoard){const off=document.createElement('canvas');off.width=state.ow;off.height=state.oh;const c=off.getContext('2d');drawPhoto(c,1);if(withBoard)renderBoard(c,computeLayout(),state.x,state.y,1,false);return off;}
+function stamp(){const d=new Date();const p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}`;}
+function dl(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),4000);}
+function toFile(cv,name){return new Promise(res=>cv.toBlob(b=>res(new File([b],name,{type:'image/jpeg'})),'image/jpeg',0.92));}
+$('#saveClean').onclick=()=>{state.saveClean=!state.saveClean;const b=$('#saveClean');b.classList.toggle('on',state.saveClean);b.textContent='黒板なしの写真も一緒に保存：'+(state.saveClean?'ON':'OFF');};
+$('#exShare').onclick=async()=>{
+  const t=stamp();const files=[await toFile(render(true),`施工写真_${t}_黒板あり.jpg`)];
+  if(state.saveClean)files.push(await toFile(render(false),`施工写真_${t}_黒板なし.jpg`));
+  if(navigator.canShare&&navigator.canShare({files})){try{await navigator.share({files,title:'施工写真'});return;}catch(err){if(err&&err.name==='AbortError')return;}}
+  files.forEach(f=>dl(f,f.name));
+};
+window.addEventListener('resize',()=>{if(state.photo)draw();});
+updateUI();
+</script>
+</body>
+</html>
