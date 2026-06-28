@@ -18,6 +18,7 @@
   header{display:flex;align-items:center;gap:10px;padding:9px 16px;border-bottom:1px solid var(--line);background:var(--panel);flex:0 0 auto;}
   header .mark{width:20px;height:20px;border-radius:3px;background:repeating-linear-gradient(45deg,var(--accent) 0 6px,#1a1a1a 6px 12px);flex:0 0 auto;}
   header h1{font-size:15px;margin:0;font-weight:800;letter-spacing:.04em;}
+  header .ver{margin-left:auto;font-size:11px;color:var(--muted);font-weight:700;letter-spacing:.05em;background:var(--panel2);border:1px solid var(--line);padding:2px 9px;border-radius:999px;flex:0 0 auto;}
   header .sub{font-size:11px;color:var(--muted);margin-left:auto;letter-spacing:.05em;}
   .stage{flex:1 1 auto;min-height:44vh;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%,#1b1e25 0%,#0f1115 100%);padding:12px;overflow:hidden;}
   #canvas{max-width:100%;max-height:100%;touch-action:none;display:none;box-shadow:0 8px 40px rgba(0,0,0,.5);border-radius:2px;}
@@ -108,7 +109,7 @@
 </head>
 <body>
 
-<header><div class="mark"></div><h1>施工写真 黒板合成</h1><span class="sub">SITE BOARD</span></header>
+<header><div class="mark"></div><h1>施工写真 黒板合成</h1><span class="sub">SITE BOARD</span><!-- ↓更新時はここの番号と sw.js の CACHE を一緒に上げる --><span class="ver" id="appVer">v4</span></header>
 
 <div class="leftpane">
   <div class="stage">
