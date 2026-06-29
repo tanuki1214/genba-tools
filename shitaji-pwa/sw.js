@@ -1,7 +1,7 @@
 /* 下地調査 マーキング記録ツール - Service Worker
    ※ index.html を更新したら、必ず下の CACHE のバージョン番号を上げてください
      （例: shitaji-v1 → shitaji-v2）。これで端末側の更新が反映されます。 */
-const CACHE = "shitaji-v1";
+const CACHE = "shitaji-v2";
 
 const ASSETS = [
   "./",
