@@ -1,0 +1,18 @@
+{
+  "name": "下地調査 マーキング記録ツール",
+  "short_name": "下地調査",
+  "description": "大規模修繕工事の下地調査マーキング記録ツール（WATANUKI LAB）",
+  "lang": "ja",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f2ea",
+  "theme_color": "#1d2740",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
