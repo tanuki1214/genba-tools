@@ -1,0 +1,1459 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>現場スケジュール共有</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3A5F">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F7F5F0;
+  --surface:#FFFFFF;
+  --surface-2:#FBFAF6;
+  --primary:#1F3A5F;
+  --primary-light:#335A85;
+  --primary-dark:#152B47;
+  --accent:#E8963C;
+  --accent-soft:#FBE3C2;
+  --text:#2B2B28;
+  --text-soft:#6B6B63;
+  --border:#E4DFD2;
+  --alert:#C1443C;
+  --alert-soft:#F6DAD7;
+  --shift:#2F8F7E;
+  --shift-soft:#D6EEE9;
+  --notice:#8A66AC;
+  --notice-soft:#E9DEF2;
+  --partner-gray:#767A82;
+  --radius:12px;
+  --radius-sm:8px;
+  --font-display:'M PLUS Rounded 1c', 'Noto Sans JP', sans-serif;
+  --font-body:'Noto Sans JP', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+  --shadow:0 2px 10px rgba(31,58,95,0.08);
+  --shadow-lg:0 12px 32px rgba(31,58,95,0.18);
+}
+*{box-sizing:border-box;}
+body{margin:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font-body);-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none;}
+button, input, select, textarea{font-family:inherit;}
+button{cursor:pointer;}
+::selection{background:var(--accent-soft);}
+
+#app{max-width:960px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);}
+
+/* ---- Header ---- */
+.app-header{background:linear-gradient(135deg,var(--primary) 0%, var(--primary-dark) 100%);color:#fff;padding:14px 16px 0;position:sticky;top:0;z-index:20;box-shadow:var(--shadow-lg);}
+.header-row{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.app-logo{display:flex;align-items:center;gap:8px;font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:.02em;}
+.header-logo-img{height:40px;width:auto;display:block;filter:drop-shadow(0 3px 6px rgba(0,0,0,.3));}
+.sync-pill{display:flex;align-items:center;gap:6px;font-size:11px;color:#DCE6F2;background:rgba(255,255,255,.08);padding:5px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.15);}
+.sync-dot{width:7px;height:7px;border-radius:50%;background:#6FCF97;}
+.sync-dot.off{background:#E8963C;}
+.lang-select{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:5px 6px;font-size:12px;}
+.lang-select option{color:#111;}
+
+.tabs{display:flex;gap:2px;margin-top:12px;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab-btn{position:relative;flex:1 0 auto;background:transparent;border:none;color:#B9C7DA;padding:10px 12px;font-size:13px;font-weight:700;font-family:var(--font-display);border-bottom:3px solid transparent;white-space:nowrap;transition:.15s;}
+.tab-btn.active{color:#fff;border-bottom-color:var(--accent);}
+.tab-badge{display:none;font-size:12px;margin-left:2px;}
+
+/* ---- Main ---- */
+main{flex:1;padding:16px;padding-bottom:90px;}
+.panel{display:none;}
+.panel.active{display:block;animation:fadeIn .18s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+.section-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:14px;box-shadow:var(--shadow);}
+
+/* ---- Calendar ---- */
+.month-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:6px;flex-wrap:wrap;}
+.month-nav .month-label{font-family:var(--font-display);font-weight:800;font-size:19px;color:var(--primary);}
+.month-nav button{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);width:36px;height:36px;font-size:16px;color:var(--primary);flex:0 0 auto;}
+.today-btn{border:1px solid var(--primary)!important;color:var(--primary);background:#fff;font-size:12px!important;width:auto!important;padding:0 12px;font-weight:700;}
+.cal-filter-select{border:1px solid var(--border);border-radius:var(--radius-sm);padding:0 8px;height:36px;font-size:12px;color:var(--primary-dark);background:#fff;font-weight:700;max-width:150px;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;}
+.cal-dow{text-align:center;font-size:11px;font-weight:700;color:var(--text-soft);padding:4px 0;border-radius:6px;}
+.cal-dow.sun{color:#fff;background:var(--alert);}
+.cal-dow.sat{color:#fff;background:#2F5FA6;}
+.cal-day{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;min-height:68px;padding:5px 4px;display:flex;flex-direction:column;gap:3px;position:relative;transition:.12s;}
+.cal-day:active{transform:scale(.97);}
+.cal-day.empty{background:transparent;border-color:transparent;}
+.cal-day .d-num{font-size:12px;font-weight:700;color:var(--text);}
+.cal-day.is-today{border:2px solid var(--accent);}
+.cal-day.is-today .d-num{color:var(--accent);}
+.cal-day.is-sun{background:var(--alert-soft);}
+.cal-day.is-sun .d-num{color:var(--alert);}
+.cal-day.is-sat{background:#DCE7F7;}
+.cal-day.is-sat .d-num{color:var(--primary-light);}
+.chip{font-size:9.5px;padding:2px 4px;border-radius:5px;color:#fff;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4;}
+.chip.type-schedule{background:var(--accent);}
+.chip.type-shift{background:var(--shift);}
+.chip.type-notice{background:var(--notice);}
+.chip-more{font-size:9px;color:var(--text-soft);font-weight:700;padding-left:2px;}
+
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:14px;font-size:11.5px;color:var(--text-soft);}
+.legend span{display:inline-flex;align-items:center;gap:5px;}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;}
+
+/* ---- Shift table ---- */
+.chip-filter-wrap{display:flex;gap:6px;flex-wrap:wrap;}
+.filter-chip{--chip-color:var(--primary);border:1px solid var(--border);background:#fff;color:var(--text-soft);border-radius:999px;padding:6px 12px;font-size:11.5px;font-weight:700;}
+.filter-chip.active{background:var(--chip-color);border-color:var(--chip-color);color:#fff;}
+.shift-scroll{overflow-x:auto;border-radius:var(--radius-sm);border:1px solid var(--border);}
+table.shift-table{border-collapse:collapse;width:100%;min-width:640px;font-size:12px;}
+table.shift-table th, table.shift-table td{border:1px solid var(--border);padding:6px 4px;text-align:center;white-space:nowrap;}
+table.shift-table thead th{background:var(--primary);color:#fff;position:sticky;top:0;font-weight:600;font-size:11px;line-height:1.5;}
+table.shift-table thead th.wk-sun{background:var(--alert);}
+table.shift-table thead th.wk-sat{background:#2F5FA6;}
+table.shift-table thead th small{display:block;font-weight:400;font-size:9px;opacity:.9;}
+table.shift-table td.staff-col, table.shift-table th.staff-col{position:sticky;left:0;background:var(--surface-2);text-align:left;padding-left:10px;font-weight:700;z-index:2;min-width:96px;}
+table.shift-table thead th.staff-col{background:var(--primary-dark);z-index:5;}
+.shift-cell{cursor:pointer;min-width:56px;font-size:10.5px;color:var(--text);}
+.shift-cell.wk-sun{background:var(--alert-soft);}
+.shift-cell.wk-sat{background:#DCE7F7;}
+.shift-cell.filled{background:var(--shift-soft);color:var(--primary-dark);font-weight:700;}
+.shift-cell.holiday{background:var(--alert-soft);color:var(--alert);font-weight:800;}
+.shift-cell.rain{background:#DCEEFB;color:#1F6FB2;font-weight:800;}
+.shift-cell:active{outline:2px solid var(--accent);outline-offset:-2px;}
+
+/* ---- Sites (gantt) ---- */
+.gantt-ruler{display:flex;font-size:9.5px;color:var(--text-soft);margin-bottom:6px;padding-left:132px;}
+.gantt-ruler span{flex:1;text-align:center;border-left:1px solid var(--border);}
+.gantt-row{display:flex;align-items:center;margin-bottom:8px;}
+.gantt-label{width:132px;flex:0 0 132px;font-size:12px;font-weight:700;padding-right:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gantt-label small{display:block;font-weight:400;color:var(--text-soft);font-size:10px;white-space:normal;}
+.gantt-track{flex:1;background:var(--surface-2);border:1px solid var(--border);border-radius:6px;height:26px;position:relative;overflow:hidden;}
+.gantt-bar{position:absolute;top:3px;bottom:3px;border-radius:5px;background:var(--primary-light);display:flex;align-items:center;padding:0 6px;color:#fff;font-size:10px;font-weight:700;overflow:hidden;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+
+/* ---- Notices ---- */
+.notice-item{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;background:var(--surface-2);}
+.notice-item.is-new{border-color:var(--accent);}
+.notice-item .n-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:4px;}
+.notice-item .n-title{font-weight:700;font-size:14px;color:var(--primary-dark);}
+.notice-item .n-meta{font-size:10.5px;color:var(--text-soft);white-space:nowrap;}
+.notice-item .n-body{font-size:13px;line-height:1.6;white-space:pre-wrap;}
+.notice-item .n-actions{margin-top:8px;display:flex;gap:8px;}
+.new-mark{color:var(--alert);font-weight:800;margin-right:3px;}
+
+/* ---- Generic list / form ---- */
+.list-empty{text-align:center;color:var(--text-soft);font-size:13px;padding:24px 8px;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:12px;font-weight:700;color:var(--text-soft);margin-bottom:5px;}
+.field input, .field select, .field textarea{width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;background:#fff;color:var(--text);}
+.field textarea{resize:vertical;min-height:70px;}
+.type-radio{display:flex;gap:6px;}
+.type-radio label{flex:1;text-align:center;border:1px solid var(--border);border-radius:8px;padding:8px 4px;font-size:12px;font-weight:700;color:var(--text-soft);cursor:pointer;}
+.type-radio input{display:none;}
+.type-radio label:has(input:checked){border-color:transparent;color:#fff;}
+.type-radio label:nth-child(1):has(input:checked){background:var(--accent);}
+.type-radio label:nth-child(2):has(input:checked){background:var(--notice);}
+
+.assignee-row{border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--surface-2);}
+.assignee-external-fields{display:none;gap:8px;margin-top:8px;}
+.assignee-external-fields input{flex:1;}
+.site-row{border:1px solid var(--border);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--surface-2);}
+.site-row .row-gap{align-items:center;}
+.site-row select{flex:1;}
+.memo-mark{margin-left:2px;}
+
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px 16px;border-radius:9px;border:none;font-size:13.5px;font-weight:700;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text);}
+.btn-danger{background:transparent;border:1px solid var(--alert);color:var(--alert);}
+.btn-block{width:100%;}
+.btn-sm{padding:6px 10px;font-size:12px;}
+.row-gap{display:flex;gap:8px;}
+
+.fab{position:fixed;right:18px;bottom:24px;width:54px;height:54px;border-radius:50%;background:var(--accent);color:#fff;font-size:26px;border:none;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;z-index:15;max-width:960px;}
+
+/* ---- Modal ---- */
+.modal-overlay{position:fixed;inset:0;background:rgba(20,25,35,.5);display:none;align-items:flex-end;justify-content:center;z-index:50;}
+.modal-overlay.open{display:flex;}
+.modal{background:#fff;width:100%;max-width:520px;border-radius:16px 16px 0 0;max-height:88vh;overflow-y:auto;padding:18px 18px 22px;animation:slideUp .2s ease;}
+@media (min-width:640px){.modal-overlay{align-items:center;}.modal{border-radius:16px;}}
+@keyframes slideUp{from{transform:translateY(24px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+.modal-head h3{margin:0;font-family:var(--font-display);font-size:16px;color:var(--primary);}
+.modal-close{background:none;border:none;font-size:20px;color:var(--text-soft);padding:4px;}
+.day-events-list{margin-bottom:14px;}
+.day-event-row{display:flex;align-items:center;gap:8px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;cursor:pointer;}
+.day-event-row .dot{width:8px;height:8px;border-radius:50%;flex:0 0 auto;}
+.day-event-row .info{flex:1;min-width:0;}
+.day-event-row .info .t{font-size:13px;font-weight:700;}
+.day-event-row .info .s{font-size:11px;color:var(--text-soft);}
+.day-event-row .ic-btn{background:none;border:none;color:var(--text-soft);font-size:15px;padding:4px;}
+
+/* Staff */
+.staff-item{display:flex;align-items:center;gap:8px;padding:9px 4px;border-bottom:1px solid var(--border);}
+.staff-item:last-child{border-bottom:none;}
+.staff-swatch{width:14px;height:14px;border-radius:4px;flex:0 0 auto;}
+.staff-item .s-name{font-weight:700;font-size:13.5px;flex:1;cursor:pointer;}
+.staff-item .s-role{font-size:11px;color:var(--text-soft);}
+.staff-actions{display:flex;gap:2px;flex:0 0 auto;}
+.staff-actions button{background:none;border:none;font-size:14px;color:var(--text-soft);padding:4px 6px;border-radius:6px;}
+.staff-actions button:active{background:var(--surface-2);}
+.staff-actions button:disabled{opacity:.25;pointer-events:none;}
+.staff-actions button.staff-del{color:var(--alert);}
+
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--primary-dark);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;box-shadow:var(--shadow-lg);z-index:80;opacity:0;pointer-events:none;transition:.25s;}
+.toast.show{opacity:1;transform:translate(-50%,-6px);}
+
+.helper-text{font-size:11.5px;color:var(--text-soft);margin-top:6px;line-height:1.6;}
+.badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 7px;border-radius:999px;background:var(--accent-soft);color:#7A4E12;}
+
+@media (max-width:420px){.cal-day{min-height:58px;}.app-logo{font-size:16px;}}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <header class="app-header">
+    <div class="header-row">
+      <div class="app-logo"><span id="appTitleText">現場スケジュール</span></div>
+      <div class="row-gap" style="align-items:center;">
+        <div class="sync-pill"><span class="sync-dot off" id="syncDot"></span><span id="syncLabel">未同期</span></div>
+        <select class="lang-select" id="langSelect">
+          <option value="ja">日本語</option>
+          <option value="vi">Tiếng Việt</option>
+          <option value="id">Bahasa Indonesia</option>
+          <option value="en">English</option>
+          <option value="my">မြန်မာ</option>
+        </select>
+        <img src="data:image/png;base64,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" alt="WATANUKI LAB" class="header-logo-img">
+      </div>
+    </div>
+    <nav class="tabs" id="tabsNav">
+      <button class="tab-btn active" data-tab="calendar">📅 <span data-i="tabCalendar"></span></button>
+      <button class="tab-btn" data-tab="shift">👷 <span data-i="tabShift"></span></button>
+      <button class="tab-btn" data-tab="site">🏗️ <span data-i="tabProject"></span></button>
+      <button class="tab-btn" data-tab="notice">📢 <span data-i="tabNotice"></span><span class="tab-badge" id="noticeBadge">🆕</span></button>
+      <button class="tab-btn" data-tab="settings">⚙️ <span data-i="tabSettings"></span></button>
+    </nav>
+  </header>
+
+  <main>
+    <!-- CALENDAR -->
+    <section class="panel active" id="panel-calendar">
+      <div class="section-card">
+        <div class="month-nav">
+          <button id="prevMonthBtn">‹</button>
+          <div class="row-gap" style="align-items:center;">
+            <div class="month-label" id="monthLabel"></div>
+            <button class="today-btn" id="todayBtn" data-i="today"></button>
+            <select class="cal-filter-select" id="calFilterSelect"></select>
+          </div>
+          <button id="nextMonthBtn">›</button>
+        </div>
+        <div class="cal-grid" id="calDow"></div>
+        <div class="cal-grid" id="calGrid" style="margin-top:4px;"></div>
+        <div class="legend">
+          <span><i style="background:var(--accent)"></i><span data-i="typeSchedule"></span></span>
+          <span><i style="background:var(--notice)"></i><span data-i="typeNotice"></span></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SHIFT -->
+    <section class="panel" id="panel-shift">
+      <div class="section-card">
+        <label class="helper-text" style="font-weight:700;color:var(--text-soft);display:block;margin-bottom:8px;" data-i="shiftFilterLabel"></label>
+        <div class="chip-filter-wrap" id="shiftFilterWrap"></div>
+      </div>
+      <div class="section-card">
+        <div class="month-nav">
+          <button id="prevMonthBtnShift">‹</button>
+          <div class="month-label" id="monthLabelShift"></div>
+          <button id="nextMonthBtnShift">›</button>
+        </div>
+        <div class="shift-scroll"><table class="shift-table" id="shiftTable"></table></div>
+        <p class="helper-text" data-i="shiftHelper"></p>
+      </div>
+    </section>
+
+    <!-- SITE -->
+    <section class="panel" id="panel-site">
+      <div class="section-card">
+        <div class="month-nav">
+          <button id="prevMonthBtnSite">‹</button>
+          <div class="month-label" id="monthLabelSite"></div>
+          <button id="nextMonthBtnSite">›</button>
+        </div>
+        <div id="ganttWrap"></div>
+      </div>
+      <button class="btn btn-primary btn-block" id="addSiteBtn">＋ <span data-i="addProject"></span></button>
+    </section>
+
+    <!-- NOTICE -->
+    <section class="panel" id="panel-notice">
+      <div id="noticeList"></div>
+      <button class="btn btn-primary btn-block" id="addNoticeBtn">＋ <span data-i="addNotice"></span></button>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="panel" id="panel-settings">
+      <div class="section-card">
+        <h3 style="margin-top:0;font-family:var(--font-display);color:var(--primary);" data-i="staffList"></h3>
+        <div id="staffListWrap"></div>
+        <button class="btn btn-ghost btn-block" id="addStaffBtn" style="margin-top:10px;">＋ <span data-i="addStaff"></span></button>
+      </div>
+
+      <div class="section-card">
+        <h3 style="margin-top:0;font-family:var(--font-display);color:var(--primary);" data-i="partnerList"></h3>
+        <div id="partnerListWrap"></div>
+        <button class="btn btn-ghost btn-block" id="addPartnerBtn" style="margin-top:10px;">＋ <span data-i="addPartner"></span></button>
+      </div>
+
+      <div class="section-card">
+        <h3 style="margin-top:0;font-family:var(--font-display);color:var(--primary);" data-i="gasSetting"></h3>
+        <div class="field"><label data-i="gasUrl"></label><input type="text" id="gasUrlInput" placeholder="https://script.google.com/macros/s/.../exec"></div>
+        <div class="row-gap">
+          <button class="btn btn-ghost" style="flex:1" id="pullBtn" data-i="pullData"></button>
+          <button class="btn btn-accent" style="flex:1" id="pushBtn" data-i="pushData"></button>
+        </div>
+        <p class="helper-text"><span data-i="lastSync"></span>: <span id="lastSyncText" data-i="neverSynced"></span></p>
+      </div>
+
+      <div class="section-card">
+        <h3 style="margin-top:0;font-family:var(--font-display);color:var(--primary);" data-i="dataManagement"></h3>
+        <div class="row-gap">
+          <button class="btn btn-ghost" style="flex:1" id="exportBtn" data-i="exportData"></button>
+          <button class="btn btn-ghost" style="flex:1" id="importBtn" data-i="importData"></button>
+        </div>
+        <input type="file" id="importFile" accept="application/json" style="display:none;">
+        <button class="btn btn-danger btn-block" id="clearBtn" style="margin-top:10px;" data-i="clearData"></button>
+      </div>
+    </section>
+  </main>
+
+  <button class="fab" id="fabAdd" title="add">＋</button>
+</div>
+
+<datalist id="workTypeList">
+  <option value="シール"><option value="防水"><option value="塗装"><option value="長尺"><option value="下地">
+</datalist>
+<datalist id="partnerCompanyList"></datalist>
+
+<!-- Day Event Modal -->
+<div class="modal-overlay" id="modalDay">
+  <div class="modal">
+    <div class="modal-head"><h3 id="dayModalTitle"></h3><button class="modal-close" data-close="modalDay">✕</button></div>
+    <div class="day-events-list" id="dayEventsList"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0;">
+    <div class="field">
+      <label data-i="eventType"></label>
+      <div class="type-radio" id="eventTypeRadio">
+        <label><input type="radio" name="evtType" value="schedule" checked><span data-i="typeSchedule"></span></label>
+        <label><input type="radio" name="evtType" value="notice"><span data-i="typeNotice"></span></label>
+      </div>
+    </div>
+    <div class="field"><label data-i="eventPerson"></label><select id="evtPersonInput"><option value="">-</option></select></div>
+    <div class="field"><label data-i="partnerList"></label><select id="evtPartnerInput"><option value="">-</option></select></div>
+    <div class="field">
+      <label data-i="companionsLabel"></label>
+      <div class="chip-filter-wrap" id="companionCheckboxes"></div>
+    </div>
+    <div class="field">
+      <label data-i="eventSite"></label>
+      <div id="evtSiteRows"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="addEvtSiteRowBtn">＋ <span data-i="addEventSite"></span></button>
+    </div>
+    <div class="field"><label data-i="eventMemo"></label><textarea id="evtMemoInput"></textarea></div>
+    <button class="btn btn-primary btn-block" id="saveEventBtn" data-i="addEvent"></button>
+  </div>
+</div>
+
+<!-- Site Modal -->
+<div class="modal-overlay" id="modalSite">
+  <div class="modal">
+    <div class="modal-head"><h3 data-i="addProject" id="siteModalTitle"></h3><button class="modal-close" data-close="modalSite">✕</button></div>
+    <input type="hidden" id="siteIdInput">
+    <div class="field"><label data-i="projectName"></label><input type="text" id="siteNameInput"></div>
+    <div class="field"><label data-i="projectSite"></label><input type="text" id="siteAddressInput"></div>
+    <div class="row-gap">
+      <div class="field" style="flex:1"><label data-i="projectStart"></label><input type="date" id="siteStartInput"></div>
+      <div class="field" style="flex:1"><label data-i="projectEnd"></label><input type="date" id="siteEndInput"></div>
+    </div>
+    <div class="field">
+      <label data-i="assigneeLabel"></label>
+      <div id="assigneeRows"></div>
+      <button type="button" class="btn btn-ghost btn-sm" id="addAssigneeRowBtn">＋ <span data-i="addAssigneeRow"></span></button>
+    </div>
+    <div class="row-gap">
+      <button class="btn btn-primary" style="flex:1" id="saveSiteBtn" data-i="save"></button>
+      <button class="btn btn-danger" id="deleteSiteBtn" data-i="delete" style="display:none;"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Notice Modal -->
+<div class="modal-overlay" id="modalNotice">
+  <div class="modal">
+    <div class="modal-head"><h3 data-i="addNotice" id="noticeModalTitle"></h3><button class="modal-close" data-close="modalNotice">✕</button></div>
+    <input type="hidden" id="noticeIdInput">
+    <div class="field"><label data-i="noticeTitle"></label><input type="text" id="noticeTitleInput"></div>
+    <div class="field"><label data-i="noticeAuthor"></label><select id="noticeAuthorInput"><option value="">-</option></select></div>
+    <div class="field"><label data-i="noticeBody"></label><textarea id="noticeBodyInput" style="min-height:120px;"></textarea></div>
+    <div class="row-gap">
+      <button class="btn btn-primary" style="flex:1" id="saveNoticeBtn" data-i="save"></button>
+      <button class="btn btn-danger" id="deleteNoticeBtn" data-i="delete" style="display:none;"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Shift Cell Modal -->
+<div class="modal-overlay" id="modalShiftCell">
+  <div class="modal">
+    <div class="modal-head"><h3 id="shiftCellModalTitle"></h3><button class="modal-close" data-close="modalShiftCell">✕</button></div>
+    <div class="field"><label data-i="eventSite"></label>
+      <select id="shiftSiteSelect"><option value="">-</option></select>
+    </div>
+    <div class="field" id="shiftSiteManualWrap" style="display:none;">
+      <input type="text" id="shiftSiteManualInput">
+    </div>
+    <div class="row-gap">
+      <button class="btn btn-primary" style="flex:1" id="saveShiftCellBtn" data-i="save"></button>
+    </div>
+    <div class="row-gap" style="margin-top:8px;">
+      <button class="btn btn-ghost" style="flex:1" id="setHolidayBtn" data-i="setHoliday"></button>
+      <button class="btn btn-ghost" style="flex:1" id="setRainHolidayBtn" data-i="setRainHoliday"></button>
+    </div>
+    <button class="btn btn-danger btn-block" id="clearShiftCellBtn" data-i="clearCell" style="margin-top:8px;display:none;"></button>
+  </div>
+</div>
+
+<!-- Partner Modal -->
+<div class="modal-overlay" id="modalPartner">
+  <div class="modal">
+    <div class="modal-head"><h3 data-i="addPartner" id="partnerModalTitle"></h3><button class="modal-close" data-close="modalPartner">✕</button></div>
+    <input type="hidden" id="partnerIdInput">
+    <div class="field"><label data-i="partnerName"></label><input type="text" id="partnerNameInput"></div>
+    <div class="field"><label data-i="workType"></label><input type="text" id="partnerWorkTypeInput"></div>
+    <div class="field"><label data-i="partnerContact"></label><input type="text" id="partnerContactInput"></div>
+    <div class="row-gap">
+      <button class="btn btn-primary" style="flex:1" id="savePartnerBtn" data-i="save"></button>
+      <button class="btn btn-danger" id="deletePartnerBtn" data-i="delete" style="display:none;"></button>
+    </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div class="modal-overlay" id="modalStaff">
+  <div class="modal">
+    <div class="modal-head"><h3 data-i="addStaff" id="staffModalTitle"></h3><button class="modal-close" data-close="modalStaff">✕</button></div>
+    <input type="hidden" id="staffIdInput">
+    <div class="field"><label data-i="staffName"></label><input type="text" id="staffNameInput"></div>
+    <div class="field"><label data-i="staffRole"></label><input type="text" id="staffRoleInput"></div>
+    <div class="field"><label data-i="staffColor"></label><input type="color" id="staffColorInput" value="#1F3A5F"></div>
+    <div class="row-gap">
+      <button class="btn btn-primary" style="flex:1" id="saveStaffBtn" data-i="save"></button>
+      <button class="btn btn-danger" id="deleteStaffBtn" data-i="delete" style="display:none;"></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================= i18n ======================= */
+const I18N = {
+ja:{tabCalendar:"カレンダー",tabShift:"シフト",tabProject:"現場",tabNotice:"連絡",tabSettings:"設定",
+today:"今日",mon:"月",tue:"火",wed:"水",thu:"木",fri:"金",sat:"土",sun:"日",
+addEvent:"予定を追加",editEvent:"予定を編集",eventType:"種類",eventTitle:"タイトル",eventPerson:"担当者",eventSite:"現場",eventMemo:"メモ",eventDate:"日付",
+typeSchedule:"予定",typeShift:"シフト",typeNotice:"連絡",
+save:"保存",cancel:"キャンセル",delete:"削除",edit:"編集",close:"閉じる",add:"追加",confirmDelete:"削除しますか?",noEvents:"予定はありません",
+staffList:"スタッフ一覧",addStaff:"スタッフを追加",staffName:"名前",staffRole:"役割",staffColor:"色",noStaff:"スタッフが登録されていません",
+projectName:"現場名",projectSite:"住所",projectStart:"工期(開始)",projectEnd:"工期(終了)",addProject:"現場を追加",noProjects:"登録された現場はありません",
+noticeTitle:"件名",noticeBody:"内容",noticeAuthor:"投稿者",addNotice:"連絡を追加",noNotices:"連絡事項はまだありません",
+language:"言語",gasSetting:"スプレッドシート連携",gasUrl:"GAS WebアプリURL",pullData:"取り込む",pushData:"反映する",lastSync:"最終同期",neverSynced:"未同期",syncing:"同期中...",syncSuccess:"同期しました",syncFail:"同期に失敗しました",
+exportData:"バックアップ書き出し",importData:"バックアップ読み込み",clearData:"全データを消去",confirmClear:"端末内の全データを削除します。よろしいですか?",
+dataManagement:"データ管理",shiftHelper:"セルをタップしてシフト(現場)を入力できます。",moreCount:"件",personLabel:"担当",siteLabel:"現場",requiredField:"入力してください",
+assigneeLabel:"担当者",addAssigneeRow:"担当者を追加",externalContractor:"外部業者",companyName:"業者名(会社名)",workType:"工種",manualSiteOption:"その他(自由入力)",
+calFilterAll:"全員",calFilterStaffGroup:"スタッフ",calFilterSiteGroup:"現場",shiftFilterAll:"全員",shiftFilterLabel:"表示するスタッフ",noAssignees:"担当者未設定",
+setHoliday:"休みにする",clearCell:"未入力に戻す",holidayShort:"休",addEventSite:"現場を追加",
+partnerList:"協力会社",addPartner:"協力会社を追加",partnerName:"会社名",partnerContact:"連絡先",companionsLabel:"同行したスタッフ",
+setRainHoliday:"雨で休みにする",holidayRainShort:"雨"},
+vi:{tabCalendar:"Lịch",tabShift:"Ca làm",tabProject:"Công trường",tabNotice:"Thông báo",tabSettings:"Cài đặt",
+today:"Hôm nay",mon:"T2",tue:"T3",wed:"T4",thu:"T5",fri:"T6",sat:"T7",sun:"CN",
+addEvent:"Thêm lịch",editEvent:"Sửa lịch",eventType:"Loại",eventTitle:"Tiêu đề",eventPerson:"Người phụ trách",eventSite:"Công trường",eventMemo:"Ghi chú",eventDate:"Ngày",
+typeSchedule:"Lịch chung",typeShift:"Ca làm",typeNotice:"Thông báo",
+save:"Lưu",cancel:"Hủy",delete:"Xóa",edit:"Sửa",close:"Đóng",add:"Thêm",confirmDelete:"Bạn có chắc muốn xóa?",noEvents:"Không có lịch nào",
+staffList:"Danh sách nhân viên",addStaff:"Thêm nhân viên",staffName:"Tên",staffRole:"Vai trò",staffColor:"Màu",noStaff:"Chưa có nhân viên nào",
+projectName:"Tên công trường",projectSite:"Địa chỉ",projectStart:"Ngày bắt đầu",projectEnd:"Ngày kết thúc",addProject:"Thêm công trường",noProjects:"Chưa có công trường nào",
+noticeTitle:"Tiêu đề",noticeBody:"Nội dung",noticeAuthor:"Người đăng",addNotice:"Thêm thông báo",noNotices:"Chưa có thông báo nào",
+language:"Ngôn ngữ",gasSetting:"Kết nối Google Sheet",gasUrl:"URL Web App (GAS)",pullData:"Tải về",pushData:"Đồng bộ lên",lastSync:"Đồng bộ lần cuối",neverSynced:"Chưa đồng bộ",syncing:"Đang đồng bộ...",syncSuccess:"Đồng bộ thành công",syncFail:"Đồng bộ thất bại",
+exportData:"Xuất bản sao lưu",importData:"Nhập bản sao lưu",clearData:"Xóa toàn bộ dữ liệu",confirmClear:"Toàn bộ dữ liệu trên máy sẽ bị xóa. Bạn có chắc chắn?",
+dataManagement:"Quản lý dữ liệu",shiftHelper:"Chạm vào ô để nhập ca làm (công trường).",moreCount:"mục",personLabel:"Phụ trách",siteLabel:"Công trường",requiredField:"Vui lòng nhập",
+assigneeLabel:"Người phụ trách",addAssigneeRow:"Thêm người phụ trách",externalContractor:"Nhà thầu ngoài",companyName:"Tên công ty",workType:"Loại công việc",manualSiteOption:"Khác (nhập tay)",
+calFilterAll:"Tất cả",calFilterStaffGroup:"Nhân viên",calFilterSiteGroup:"Công trường",shiftFilterAll:"Tất cả",shiftFilterLabel:"Hiển thị nhân viên",noAssignees:"Chưa có người phụ trách",
+setHoliday:"Đánh dấu nghỉ",clearCell:"Xóa ô này",holidayShort:"Nghỉ",addEventSite:"Thêm công trường",
+partnerList:"Nhà thầu hợp tác",addPartner:"Thêm nhà thầu",partnerName:"Tên công ty",partnerContact:"Liên hệ",companionsLabel:"Nhân viên đi cùng",
+setRainHoliday:"Nghỉ do mưa",holidayRainShort:"Mưa"},
+id:{tabCalendar:"Kalender",tabShift:"Shift",tabProject:"Lokasi",tabNotice:"Info",tabSettings:"Pengaturan",
+today:"Hari ini",mon:"Sen",tue:"Sel",wed:"Rab",thu:"Kam",fri:"Jum",sat:"Sab",sun:"Min",
+addEvent:"Tambah jadwal",editEvent:"Edit jadwal",eventType:"Jenis",eventTitle:"Judul",eventPerson:"Penanggung jawab",eventSite:"Lokasi",eventMemo:"Catatan",eventDate:"Tanggal",
+typeSchedule:"Jadwal",typeShift:"Shift",typeNotice:"Info",
+save:"Simpan",cancel:"Batal",delete:"Hapus",edit:"Edit",close:"Tutup",add:"Tambah",confirmDelete:"Yakin ingin menghapus?",noEvents:"Tidak ada jadwal",
+staffList:"Daftar staf",addStaff:"Tambah staf",staffName:"Nama",staffRole:"Peran",staffColor:"Warna",noStaff:"Belum ada staf",
+projectName:"Nama lokasi",projectSite:"Alamat",projectStart:"Tanggal mulai",projectEnd:"Tanggal selesai",addProject:"Tambah lokasi",noProjects:"Belum ada lokasi",
+noticeTitle:"Judul",noticeBody:"Isi",noticeAuthor:"Diposting oleh",addNotice:"Tambah info",noNotices:"Belum ada info",
+language:"Bahasa",gasSetting:"Sinkronisasi Google Sheet",gasUrl:"URL Web App (GAS)",pullData:"Ambil data",pushData:"Kirim data",lastSync:"Sinkron terakhir",neverSynced:"Belum sinkron",syncing:"Menyinkronkan...",syncSuccess:"Sinkron berhasil",syncFail:"Sinkron gagal",
+exportData:"Ekspor cadangan",importData:"Impor cadangan",clearData:"Hapus semua data",confirmClear:"Semua data di perangkat ini akan dihapus. Lanjutkan?",
+dataManagement:"Manajemen data",shiftHelper:"Ketuk sel untuk mengisi shift (lokasi).",moreCount:"item",personLabel:"PJ",siteLabel:"Lokasi",requiredField:"Wajib diisi",
+assigneeLabel:"Penanggung jawab",addAssigneeRow:"Tambah penanggung jawab",externalContractor:"Kontraktor luar",companyName:"Nama perusahaan",workType:"Jenis pekerjaan",manualSiteOption:"Lainnya (isi manual)",
+calFilterAll:"Semua",calFilterStaffGroup:"Staf",calFilterSiteGroup:"Lokasi",shiftFilterAll:"Semua",shiftFilterLabel:"Tampilkan staf",noAssignees:"Belum ada penanggung jawab",
+setHoliday:"Tandai libur",clearCell:"Kosongkan sel",holidayShort:"Libur",addEventSite:"Tambah lokasi",
+partnerList:"Mitra kontraktor",addPartner:"Tambah mitra",partnerName:"Nama perusahaan",partnerContact:"Kontak",companionsLabel:"Staf yang ikut",
+setRainHoliday:"Libur karena hujan",holidayRainShort:"Hujan"},
+en:{tabCalendar:"Calendar",tabShift:"Shifts",tabProject:"Sites",tabNotice:"Notices",tabSettings:"Settings",
+today:"Today",mon:"Mon",tue:"Tue",wed:"Wed",thu:"Thu",fri:"Fri",sat:"Sat",sun:"Sun",
+addEvent:"Add event",editEvent:"Edit event",eventType:"Type",eventTitle:"Title",eventPerson:"Person in charge",eventSite:"Site",eventMemo:"Memo",eventDate:"Date",
+typeSchedule:"Schedule",typeShift:"Shift",typeNotice:"Notice",
+save:"Save",cancel:"Cancel",delete:"Delete",edit:"Edit",close:"Close",add:"Add",confirmDelete:"Delete this item?",noEvents:"No events",
+staffList:"Staff list",addStaff:"Add staff",staffName:"Name",staffRole:"Role",staffColor:"Color",noStaff:"No staff registered",
+projectName:"Site name",projectSite:"Address",projectStart:"Start date",projectEnd:"End date",addProject:"Add site",noProjects:"No sites yet",
+noticeTitle:"Title",noticeBody:"Body",noticeAuthor:"Posted by",addNotice:"Add notice",noNotices:"No notices yet",
+language:"Language",gasSetting:"Google Sheet sync",gasUrl:"GAS Web App URL",pullData:"Pull",pushData:"Push",lastSync:"Last sync",neverSynced:"Never synced",syncing:"Syncing...",syncSuccess:"Synced successfully",syncFail:"Sync failed",
+exportData:"Export backup",importData:"Import backup",clearData:"Clear all data",confirmClear:"This will delete all local data. Continue?",
+dataManagement:"Data management",shiftHelper:"Tap a cell to enter a shift (site).",moreCount:"more",personLabel:"In charge",siteLabel:"Site",requiredField:"Required",
+assigneeLabel:"Person in charge",addAssigneeRow:"Add person in charge",externalContractor:"External contractor",companyName:"Company name",workType:"Work type",manualSiteOption:"Other (manual entry)",
+calFilterAll:"Everyone",calFilterStaffGroup:"Staff",calFilterSiteGroup:"Sites",shiftFilterAll:"Everyone",shiftFilterLabel:"Show staff",noAssignees:"No one assigned",
+setHoliday:"Mark as off",clearCell:"Clear this cell",holidayShort:"Off",addEventSite:"Add site",
+partnerList:"Partner companies",addPartner:"Add partner",partnerName:"Company name",partnerContact:"Contact",companionsLabel:"Staff who went along",
+setRainHoliday:"Off due to rain",holidayRainShort:"Rain"},
+my:{tabCalendar:"ပြက္ခဒိန်",tabShift:"အလှည့်ကျ",tabProject:"လုပ်ငန်းခွင်",tabNotice:"အသိပေးချက်",tabSettings:"ဆက်တင်",
+today:"ယနေ့",mon:"တနင်္လာ",tue:"အင်္ဂါ",wed:"ဗုဒ္ဓဟူး",thu:"ကြာသပတေး",fri:"သောကြာ",sat:"စနေ",sun:"တနင်္ဂနွေ",
+addEvent:"အစီအစဉ်ထည့်ရန်",editEvent:"အစီအစဉ်ပြင်ရန်",eventType:"အမျိုးအစား",eventTitle:"ခေါင်းစဉ်",eventPerson:"တာဝန်ခံ",eventSite:"လုပ်ငန်းခွင်",eventMemo:"မှတ်ချက်",eventDate:"ရက်စွဲ",
+typeSchedule:"အစီအစဉ်",typeShift:"အလှည့်ကျ",typeNotice:"အသိပေးချက်",
+save:"သိမ်းမည်",cancel:"ပယ်ဖျက်",delete:"ဖျက်မည်",edit:"ပြင်ဆင်မည်",close:"ပိတ်မည်",add:"ထည့်မည်",confirmDelete:"ဖျက်လိုသည်မှာ သေချာပါသလား?",noEvents:"အစီအစဉ် မရှိပါ",
+staffList:"ဝန်ထမ်းစာရင်း",addStaff:"ဝန်ထမ်းထည့်ရန်",staffName:"အမည်",staffRole:"တာဝန်",staffColor:"အရောင်",noStaff:"ဝန်ထမ်းမရှိသေးပါ",
+projectName:"လုပ်ငန်းခွင်အမည်",projectSite:"လိပ်စာ",projectStart:"စတင်ရက်",projectEnd:"ပြီးဆုံးရက်",addProject:"လုပ်ငန်းခွင်ထည့်ရန်",noProjects:"လုပ်ငန်းခွင်မရှိသေးပါ",
+noticeTitle:"ခေါင်းစဉ်",noticeBody:"အကြောင်းအရာ",noticeAuthor:"ပို့သူ",addNotice:"အသိပေးချက်ထည့်ရန်",noNotices:"အသိပေးချက်မရှိသေးပါ",
+language:"ဘာသာစကား",gasSetting:"Google Sheet ချိတ်ဆက်မှု",gasUrl:"GAS Web App URL",pullData:"ဆွဲယူမည်",pushData:"ပို့မည်",lastSync:"နောက်ဆုံးထပ်တူညီမှု",neverSynced:"မထပ်တူညီသေးပါ",syncing:"ထပ်တူညီနေသည်...",syncSuccess:"ထပ်တူညီပြီးပါပြီ",syncFail:"ထပ်တူညီမှု မအောင်မြင်ပါ",
+exportData:"ဘက်အပ်ထုတ်ရန်",importData:"ဘက်အပ်တင်ရန်",clearData:"အချက်အလက်အားလုံးဖျက်ရန်",confirmClear:"စက်ထဲရှိ အချက်အလက်အားလုံးကို ဖျက်ပါမည်။ ဆက်လုပ်မလား?",
+dataManagement:"အချက်အလက်စီမံခန့်ခွဲမှု",shiftHelper:"အလှည့်ကျ(လုပ်ငန်းခွင်) ထည့်ရန် အကွက်ကို နှိပ်ပါ။",moreCount:"ခု",personLabel:"တာဝန်ခံ",siteLabel:"လုပ်ငန်းခွင်",requiredField:"ဖြည့်ပါ",
+assigneeLabel:"တာဝန်ခံများ",addAssigneeRow:"တာဝန်ခံထည့်ရန်",externalContractor:"ပြင်ပလုပ်ငန်းရှင်",companyName:"ကုမ္ပဏီအမည်",workType:"အလုပ်အမျိုးအစား",manualSiteOption:"အခြား(ကိုယ်တိုင်ဖြည့်)",
+calFilterAll:"အားလုံး",calFilterStaffGroup:"ဝန်ထမ်း",calFilterSiteGroup:"လုပ်ငန်းခွင်",shiftFilterAll:"အားလုံး",shiftFilterLabel:"ပြသမည့်ဝန်ထမ်း",noAssignees:"တာဝန်ခံမရှိသေးပါ",
+setHoliday:"ခွင့်အဖြစ်သတ်မှတ်မည်",clearCell:"ဒီအကွက်ကို ရှင်းမည်",holidayShort:"ခွင့်",addEventSite:"လုပ်ငန်းခွင်ထည့်ရန်",
+partnerList:"ပူးပေါင်းကုမ္ပဏီများ",addPartner:"ကုမ္ပဏီထည့်ရန်",partnerName:"ကုမ္ပဏီအမည်",partnerContact:"ဆက်သွယ်ရန်",companionsLabel:"လိုက်ပါသောဝန်ထမ်း",
+setRainHoliday:"မိုးကြောင့်ခွင့်",holidayRainShort:"မိုး"}
+};
+function t(key){
+  const lang = state.settings.lang || 'ja';
+  return (I18N[lang] && I18N[lang][key]) || I18N.ja[key] || key;
+}
+
+/* ======================= State ======================= */
+const STORAGE_KEY = 'genba-schedule-app-v2';
+let state = loadState();
+let viewYear = new Date().getFullYear();
+let viewMonth = new Date().getMonth();
+let activeTab = 'calendar';
+let editingDayKey = null;
+let editingEventId = null;
+let companionSelected = new Set();
+let calFilter = {mode:'all', id:''};
+let shiftSelectedStaff = new Set(state.staff.map(s=>s.id));
+
+function defaultState(){
+  return {
+    events:[],   // {id,date,type('schedule'|'notice'),person,companions:[staffId],sites:[{siteId,siteText}],memo,isHoliday,source}
+    sites:[],    // {id,name,address,start,end,assignees:[{id,kind:'staff'|'external',staffId,company,workType}]}
+    notices:[],  // {id,title,body,author,createdAt}
+    staff:[],    // {id,name,role,color}
+    partners:[], // {id,name,workType,contact}
+    settings:{lang:'ja', gasUrl:'', lastSync:'', lastNoticeSeen:0}
+  };
+}
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return defaultState();
+    const parsed = JSON.parse(raw);
+    return Object.assign(defaultState(), parsed, {settings:Object.assign(defaultState().settings, parsed.settings||{})});
+  }catch(e){ return defaultState(); }
+}
+function saveState(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* ======================= Utils ======================= */
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function dateKey(y,m,d){ return y+'-'+pad2(m+1)+'-'+pad2(d); }
+function daysInMonth(y,m){ return new Date(y, m+1, 0).getDate(); }
+function todayKey(){ const d=new Date(); return dateKey(d.getFullYear(), d.getMonth(), d.getDate()); }
+function showToast(msg){ const el=document.getElementById('toast'); el.textContent=msg; el.classList.add('show'); setTimeout(()=>el.classList.remove('show'),2200); }
+function staffById(id){ return state.staff.find(s=>s.id===id); }
+function siteById(id){ return state.sites.find(s=>s.id===id); }
+function escapeHtml(str){ return (str||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function capitalize(s){ return s.charAt(0).toUpperCase()+s.slice(1); }
+
+/* ======================= Shell / i18n ======================= */
+function applyI18n(){
+  document.querySelectorAll('[data-i]').forEach(el=>{ el.textContent = t(el.getAttribute('data-i')); });
+  document.getElementById('langSelect').value = state.settings.lang;
+  document.title = '現場スケジュール共有';
+}
+function switchTab(tabName){
+  activeTab = tabName;
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.tab===tabName));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+tabName).classList.add('active');
+  document.getElementById('fabAdd').style.display = (tabName==='calendar') ? 'flex':'none';
+  renderActivePanel();
+}
+function renderActivePanel(){
+  if(activeTab==='calendar') renderCalendar();
+  else if(activeTab==='shift'){ renderShiftFilterChips(); renderShift(); }
+  else if(activeTab==='site') renderSites();
+  else if(activeTab==='notice') renderNotices();
+  else if(activeTab==='settings') renderSettings();
+}
+
+/* ======================= Calendar filter ======================= */
+function populateCalFilter(){
+  const sel = document.getElementById('calFilterSelect');
+  const prev = sel.value;
+  let html = `<option value="all::">${t('calFilterAll')}</option>`;
+  if(state.staff.length){
+    html += `<optgroup label="${t('calFilterStaffGroup')}">` + state.staff.map(s=>`<option value="staff::${s.id}">${escapeHtml(s.name)}</option>`).join('') + `</optgroup>`;
+  }
+  if(state.sites.length){
+    html += `<optgroup label="${t('calFilterSiteGroup')}">` + state.sites.map(s=>`<option value="site::${s.id}">${escapeHtml(s.name)}</option>`).join('') + `</optgroup>`;
+  }
+  sel.innerHTML = html;
+  if([...sel.options].some(o=>o.value===prev)) sel.value = prev;
+  const [mode,id] = sel.value.split('::');
+  calFilter = {mode, id};
+}
+document.getElementById('calFilterSelect').addEventListener('change', (e)=>{
+  const [mode,id] = e.target.value.split('::');
+  calFilter = {mode, id};
+  renderCalendar();
+});
+function matchesCalFilter(e){
+  if(calFilter.mode==='staff') return e.person===calFilter.id || (e.companions||[]).includes(calFilter.id);
+  if(calFilter.mode==='site') return (e.sites||[]).some(s=>s.siteId===calFilter.id);
+  return true;
+}
+function eventSiteNames(e){
+  return (e.sites||[]).map(s=> s.siteId ? (siteById(s.siteId)?siteById(s.siteId).name:'') : (s.siteText||'')).filter(Boolean);
+}
+function eventLabel(e){
+  const personName = e.person ? (staffById(e.person)?staffById(e.person).name:'') : '';
+  const siteNames = eventSiteNames(e);
+  let label = [personName, siteNames.join('/')].filter(Boolean).join(' ・ ');
+  if(!label) label = t('type'+capitalize(e.type));
+  return label;
+}
+function eventColor(e){
+  if(e.person){ const s=staffById(e.person); if(s) return s.color; }
+  if(e.partner) return 'var(--partner-gray)';
+  return e.type==='schedule' ? 'var(--accent)' : 'var(--notice)';
+}
+
+/* ======================= Calendar ======================= */
+const DOW_KEYS = ['sun','mon','tue','wed','thu','fri','sat'];
+function renderMonthLabel(el, y, m){
+  const months = {ja:['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'], en:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']};
+  const lang = state.settings.lang;
+  const label = (lang==='ja') ? (y+'年 '+months.ja[m]) : (lang==='vi') ? ('Tháng '+(m+1)+'/'+y) : (months.en[m]+' '+y);
+  el.textContent = label;
+}
+function renderCalendar(){
+  populateCalFilter();
+  renderMonthLabel(document.getElementById('monthLabel'), viewYear, viewMonth);
+  const dowWrap = document.getElementById('calDow');
+  dowWrap.innerHTML = DOW_KEYS.map(k=>`<div class="cal-dow ${k==='sun'?'sun':k==='sat'?'sat':''}">${t(k)}</div>`).join('');
+  const grid = document.getElementById('calGrid');
+  const first = new Date(viewYear, viewMonth, 1);
+  const startOffset = first.getDay();
+  const total = daysInMonth(viewYear, viewMonth);
+  let html = '';
+  for(let i=0;i<startOffset;i++) html += `<div class="cal-day empty"></div>`;
+  for(let d=1; d<=total; d++){
+    const key = dateKey(viewYear, viewMonth, d);
+    const dow = new Date(viewYear, viewMonth, d).getDay();
+    const dayEvents = state.events.filter(e=>e.date===key && matchesCalFilter(e)).sort((a,b)=>a.type.localeCompare(b.type));
+    const isToday = key===todayKey();
+    let chips = dayEvents.slice(0,3).map(e=>`<div class="chip" style="background:${eventColor(e)}">${escapeHtml(eventLabel(e))}${e.memo?'<span class="memo-mark">🖊</span>':''}</div>`).join('');
+    if(dayEvents.length>3) chips += `<div class="chip-more">+${dayEvents.length-3}${t('moreCount')}</div>`;
+    html += `<div class="cal-day ${isToday?'is-today':''} ${dow===0?'is-sun':''} ${dow===6?'is-sat':''}" data-date="${key}"><div class="d-num">${d}</div>${chips}</div>`;
+  }
+  grid.innerHTML = html;
+  grid.querySelectorAll('.cal-day[data-date]').forEach(el=>{ el.addEventListener('click', ()=>openDayModal(el.dataset.date)); });
+}
+
+/* ---- Day modal ---- */
+function openDayModal(key){
+  editingDayKey = key;
+  editingEventId = null;
+  document.getElementById('dayModalTitle').textContent = key;
+  renderDayEventsList();
+  resetEventForm();
+  openModal('modalDay');
+}
+function resetEventForm(){
+  editingEventId = null;
+  populatePersonSelect();
+  document.getElementById('evtPersonInput').value='';
+  populatePartnerSelect();
+  document.getElementById('evtPartnerInput').value='';
+  document.getElementById('evtSiteRows').innerHTML='';
+  addEvtSiteRow(null);
+  document.getElementById('evtMemoInput').value='';
+  document.querySelector('input[name="evtType"][value="schedule"]').checked = true;
+  companionSelected = new Set();
+  renderCompanionCheckboxes();
+  document.getElementById('saveEventBtn').textContent = t('addEvent');
+}
+function loadEventForEdit(id){
+  const e = state.events.find(x=>x.id===id);
+  if(!e) return;
+  editingEventId = id;
+  populatePersonSelect();
+  document.querySelector(`input[name="evtType"][value="${e.type}"]`).checked = true;
+  document.getElementById('evtPersonInput').value = e.person||'';
+  populatePartnerSelect();
+  document.getElementById('evtPartnerInput').value = e.partner||'';
+  document.getElementById('evtSiteRows').innerHTML='';
+  if(e.sites && e.sites.length){ e.sites.forEach(s=>addEvtSiteRow(s)); } else { addEvtSiteRow(null); }
+  document.getElementById('evtMemoInput').value = e.memo||'';
+  companionSelected = new Set(e.companions||[]);
+  renderCompanionCheckboxes();
+  document.getElementById('saveEventBtn').textContent = t('save');
+}
+function populatePartnerSelect(){
+  const sel = document.getElementById('evtPartnerInput');
+  sel.innerHTML = `<option value="">-</option>` + state.partners.map(p=>`<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('');
+}
+function renderCompanionCheckboxes(){
+  const wrap = document.getElementById('companionCheckboxes');
+  wrap.innerHTML = state.staff.map(s=>`<button type="button" class="filter-chip ${companionSelected.has(s.id)?'active':''}" data-companion="${s.id}" style="--chip-color:${s.color}">${escapeHtml(s.name)}</button>`).join('');
+  wrap.querySelectorAll('[data-companion]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.companion;
+      if(companionSelected.has(id)) companionSelected.delete(id); else companionSelected.add(id);
+      renderCompanionCheckboxes();
+    });
+  });
+}
+function renderDayEventsList(){
+  const list = state.events.filter(e=>e.date===editingDayKey);
+  const wrap = document.getElementById('dayEventsList');
+  if(list.length===0){ wrap.innerHTML = `<p class="list-empty">${t('noEvents')}</p>`; return; }
+  wrap.innerHTML = list.map(e=>{
+    const personName = e.person ? (staffById(e.person)? staffById(e.person).name : '') : '';
+    const partnerName = e.partner ? (state.partners.find(p=>p.id===e.partner)?.name || '') : '';
+    const companionNames = (e.companions||[]).map(id=>staffById(id)?staffById(id).name:'').filter(Boolean);
+    const siteNames = eventSiteNames(e).join('/');
+    const sub = [personName + (companionNames.length? '('+companionNames.join(',')+')':''), partnerName, siteNames].filter(Boolean).join(' · ');
+    return `<div class="day-event-row" data-edit-evt="${e.id}"><span class="dot" style="background:${eventColor(e)}"></span>
+      <div class="info"><div class="t">${escapeHtml(t('type'+capitalize(e.type)))}${e.memo?' <span class="memo-mark">🖊</span>':''}</div><div class="s">${escapeHtml(sub)}</div></div>
+      <button class="ic-btn" data-del-evt="${e.id}">🗑️</button></div>`;
+  }).join('');
+  wrap.querySelectorAll('[data-edit-evt]').forEach(row=>{
+    row.addEventListener('click', (ev)=>{
+      if(ev.target.closest('[data-del-evt]')) return;
+      loadEventForEdit(row.dataset.editEvt);
+    });
+  });
+  wrap.querySelectorAll('[data-del-evt]').forEach(b=>{
+    b.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      if(!confirm(t('confirmDelete'))) return;
+      state.events = state.events.filter(e=>e.id!==b.dataset.delEvt);
+      if(editingEventId===b.dataset.delEvt) resetEventForm();
+      saveState(); renderDayEventsList(); renderCalendar(); if(activeTab==='shift') renderShift();
+    });
+  });
+}
+function populatePersonSelect(){
+  const sel = document.getElementById('evtPersonInput');
+  sel.innerHTML = `<option value="">-</option>` + state.staff.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+function siteSelectOptionsHtml(selectedSiteId, isManual){
+  let html = `<option value="">-</option>`;
+  state.sites.forEach(s=>{ html += `<option value="${s.id}" ${!isManual && selectedSiteId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`; });
+  html += `<option value="__manual__" ${isManual?'selected':''}>${t('manualSiteOption')}</option>`;
+  return html;
+}
+function addEvtSiteRow(data){
+  data = data || {};
+  const isManual = !!data.siteText && !data.siteId;
+  const wrap = document.getElementById('evtSiteRows');
+  const row = document.createElement('div');
+  row.className = 'site-row';
+  row.innerHTML = `
+    <div class="row-gap">
+      <select class="site-select">${siteSelectOptionsHtml(data.siteId, isManual)}</select>
+      <button type="button" class="ic-btn site-row-remove">🗑️</button>
+    </div>
+    <input type="text" class="site-manual-input" style="display:${isManual?'block':'none'};margin-top:8px;" value="${escapeHtml(data.siteText||'')}">`;
+  wrap.appendChild(row);
+  row.querySelector('.site-select').addEventListener('change', (e)=>{
+    row.querySelector('.site-manual-input').style.display = e.target.value==='__manual__' ? 'block' : 'none';
+  });
+  row.querySelector('.site-row-remove').addEventListener('click', ()=>{
+    if(wrap.children.length<=1){ row.querySelector('.site-select').value=''; row.querySelector('.site-manual-input').style.display='none'; row.querySelector('.site-manual-input').value=''; return; }
+    row.remove();
+  });
+}
+document.getElementById('addEvtSiteRowBtn').addEventListener('click', ()=>addEvtSiteRow(null));
+function collectEvtSites(){
+  const rows = document.querySelectorAll('#evtSiteRows .site-row');
+  const result = [];
+  rows.forEach(row=>{
+    const val = row.querySelector('.site-select').value;
+    if(!val) return;
+    if(val==='__manual__'){
+      const txt = row.querySelector('.site-manual-input').value.trim();
+      if(txt) result.push({siteId:'', siteText:txt});
+    } else {
+      result.push({siteId:val, siteText:''});
+    }
+  });
+  return result;
+}
+document.getElementById('saveEventBtn').addEventListener('click', ()=>{
+  const type = document.querySelector('input[name="evtType"]:checked').value;
+  const person = document.getElementById('evtPersonInput').value;
+  const partner = document.getElementById('evtPartnerInput').value;
+  const sites = collectEvtSites();
+  const memo = document.getElementById('evtMemoInput').value.trim();
+  const companions = [...companionSelected];
+  if(!person && !partner && sites.length===0 && !memo){ showToast(t('requiredField')); return; }
+  if(editingEventId){
+    const e = state.events.find(x=>x.id===editingEventId);
+    Object.assign(e, {type, person, partner, sites, memo, companions});
+  } else {
+    state.events.push({id:uid(), date:editingDayKey, type, person, partner, companions, sites, memo, isHoliday:false, source:'calendar'});
+  }
+  saveState();
+  renderDayEventsList();
+  renderCalendar();
+  if(activeTab==='shift') renderShift();
+  resetEventForm();
+  showToast(t('syncSuccess'));
+});
+
+/* ======================= Shift ======================= */
+function renderShiftFilterChips(){
+  const wrap = document.getElementById('shiftFilterWrap');
+  const allChecked = state.staff.length>0 && shiftSelectedStaff.size===state.staff.length;
+  let html = `<button type="button" class="filter-chip ${allChecked?'active':''}" data-all="1">${t('shiftFilterAll')}</button>`;
+  html += state.staff.map(s=>`<button type="button" class="filter-chip ${shiftSelectedStaff.has(s.id)?'active':''}" data-staff="${s.id}" style="--chip-color:${s.color}">${escapeHtml(s.name)}</button>`).join('');
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('[data-staff]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      const id = btn.dataset.staff;
+      if(shiftSelectedStaff.has(id)) shiftSelectedStaff.delete(id); else shiftSelectedStaff.add(id);
+      renderShiftFilterChips(); renderShift();
+    });
+  });
+  const allBtn = wrap.querySelector('[data-all]');
+  if(allBtn){
+    allBtn.addEventListener('click', ()=>{
+      if(shiftSelectedStaff.size === state.staff.length) shiftSelectedStaff.clear();
+      else state.staff.forEach(s=>shiftSelectedStaff.add(s.id));
+      renderShiftFilterChips(); renderShift();
+    });
+  }
+}
+function renderShift(){
+  renderMonthLabel(document.getElementById('monthLabelShift'), viewYear, viewMonth);
+  const total = daysInMonth(viewYear, viewMonth);
+  const table = document.getElementById('shiftTable');
+  let thead = `<thead><tr><th class="staff-col">${t('staffList')}</th>`;
+  for(let d=1; d<=total; d++){
+    const dow = new Date(viewYear, viewMonth, d).getDay();
+    const wkClass = dow===0?'wk-sun':dow===6?'wk-sat':'';
+    thead += `<th class="${wkClass}">${d}<small>${t(DOW_KEYS[dow])}</small></th>`;
+  }
+  thead += `</tr></thead>`;
+  let tbody = '<tbody>';
+  const visibleStaff = state.staff.filter(s=>shiftSelectedStaff.has(s.id));
+  if(visibleStaff.length===0){
+    tbody += `<tr><td class="staff-col">-</td><td colspan="${total}" style="color:var(--text-soft);font-size:11px;">${t('noStaff')}</td></tr>`;
+  } else {
+    visibleStaff.forEach(s=>{
+      tbody += `<tr><td class="staff-col"><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:${s.color};margin-right:5px;"></span>${escapeHtml(s.name)}</td>`;
+      for(let d=1; d<=total; d++){
+        const key = dateKey(viewYear, viewMonth, d);
+        const dow = new Date(viewYear, viewMonth, d).getDay();
+        const wkClass = dow===0?'wk-sun':dow===6?'wk-sat':'';
+        const dayEvts = state.events.filter(e=>e.type==='schedule' && e.date===key && (e.person===s.id || (e.companions||[]).includes(s.id)));
+        const siteNames = [];
+        dayEvts.forEach(e=>{ eventSiteNames(e).forEach(n=>{ if(!siteNames.includes(n)) siteNames.push(n); }); });
+        const holidayEvt = dayEvts.find(e=>e.isHoliday);
+        let label = '', cellClass = wkClass;
+        if(holidayEvt && siteNames.length===0){
+          if(holidayEvt.holidayReason==='rain'){ label = t('holidayRainShort'); cellClass += ' rain'; }
+          else { label = t('holidayShort'); cellClass += ' holiday'; }
+        } else if(siteNames.length){
+          label = siteNames.join('/'); cellClass += ' filled';
+        } else if(dow===0){
+          label = t('holidayShort'); cellClass += ' holiday';
+        }
+        tbody += `<td class="shift-cell ${cellClass}" data-staff="${s.id}" data-date="${key}">${escapeHtml(label)}</td>`;
+      }
+      tbody += `</tr>`;
+    });
+  }
+  tbody += '</tbody>';
+  table.innerHTML = thead + tbody;
+  table.querySelectorAll('.shift-cell').forEach(cell=>{
+    cell.addEventListener('click', ()=> openShiftCellModal(cell.dataset.staff, cell.dataset.date));
+  });
+}
+
+/* ---- Shift cell modal ----
+   このモーダルは「シフト欄専用の記録」(source:'shift')を編集します。
+   カレンダー側で入力した予定(source:'calendar')は上書きせず、
+   表示上は両方の現場名を合算して見せます。 */
+let editingShiftCell = null;
+function populateShiftSiteSelect(){
+  const sel = document.getElementById('shiftSiteSelect');
+  sel.innerHTML = `<option value="">-</option>` + state.sites.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('') + `<option value="__manual__">${t('manualSiteOption')}</option>`;
+}
+document.getElementById('shiftSiteSelect').addEventListener('change', (e)=>{
+  document.getElementById('shiftSiteManualWrap').style.display = e.target.value==='__manual__' ? 'block' : 'none';
+});
+function findShiftRecord(staffId, date){
+  return state.events.find(e=>e.type==='schedule' && e.source==='shift' && e.person===staffId && e.date===date);
+}
+function openShiftCellModal(staffId, date){
+  editingShiftCell = {staffId, date};
+  const s = staffById(staffId);
+  document.getElementById('shiftCellModalTitle').textContent = (s?s.name:'') + '  ' + date;
+  populateShiftSiteSelect();
+  const existing = findShiftRecord(staffId, date);
+  document.getElementById('shiftSiteManualWrap').style.display = 'none';
+  document.getElementById('shiftSiteManualInput').value = '';
+  document.getElementById('shiftSiteSelect').value = '';
+  if(existing && !existing.isHoliday && existing.sites && existing.sites[0]){
+    const first = existing.sites[0];
+    if(first.siteId){ document.getElementById('shiftSiteSelect').value = first.siteId; }
+    else if(first.siteText){ document.getElementById('shiftSiteSelect').value = '__manual__'; document.getElementById('shiftSiteManualWrap').style.display='block'; document.getElementById('shiftSiteManualInput').value = first.siteText; }
+  }
+  document.getElementById('clearShiftCellBtn').style.display = existing ? 'block' : 'none';
+  openModal('modalShiftCell');
+}
+document.getElementById('saveShiftCellBtn').addEventListener('click', ()=>{
+  const {staffId, date} = editingShiftCell;
+  const siteSelVal = document.getElementById('shiftSiteSelect').value;
+  const siteId = (siteSelVal && siteSelVal!=='__manual__') ? siteSelVal : '';
+  const siteText = (siteSelVal==='__manual__') ? document.getElementById('shiftSiteManualInput').value.trim() : '';
+  if(!siteId && !siteText){ showToast(t('requiredField')); return; }
+  const sites = [{siteId, siteText}];
+  let existing = findShiftRecord(staffId, date);
+  if(existing){ Object.assign(existing, {sites, isHoliday:false, holidayReason:''}); }
+  else { state.events.push({id:uid(), date, type:'schedule', person:staffId, sites, memo:'', isHoliday:false, holidayReason:'', source:'shift'}); }
+  saveState(); closeModal('modalShiftCell'); renderShift(); renderCalendar();
+});
+document.getElementById('setHolidayBtn').addEventListener('click', ()=>{
+  const {staffId, date} = editingShiftCell;
+  let existing = findShiftRecord(staffId, date);
+  if(existing){ Object.assign(existing, {sites:[], isHoliday:true, holidayReason:''}); }
+  else { state.events.push({id:uid(), date, type:'schedule', person:staffId, sites:[], memo:'', isHoliday:true, holidayReason:'', source:'shift'}); }
+  saveState(); closeModal('modalShiftCell'); renderShift(); renderCalendar();
+});
+document.getElementById('setRainHolidayBtn').addEventListener('click', ()=>{
+  const {staffId, date} = editingShiftCell;
+  let existing = findShiftRecord(staffId, date);
+  if(existing){ Object.assign(existing, {sites:[], isHoliday:true, holidayReason:'rain'}); }
+  else { state.events.push({id:uid(), date, type:'schedule', person:staffId, sites:[], memo:'', isHoliday:true, holidayReason:'rain', source:'shift'}); }
+  saveState(); closeModal('modalShiftCell'); renderShift(); renderCalendar();
+});
+document.getElementById('clearShiftCellBtn').addEventListener('click', ()=>{
+  const {staffId, date} = editingShiftCell;
+  state.events = state.events.filter(e=>!(e.type==='schedule' && e.source==='shift' && e.person===staffId && e.date===date));
+  saveState(); closeModal('modalShiftCell'); renderShift(); renderCalendar();
+});
+
+/* ======================= Sites (gantt) ======================= */
+let editingSiteId = null;
+function assigneeSummary(assignees){
+  if(!assignees || assignees.length===0) return t('noAssignees');
+  return assignees.map(a=>{
+    if(a.kind==='external') return `${a.company||t('externalContractor')}${a.workType?'('+a.workType+')':''}`;
+    const s = staffById(a.staffId);
+    return s ? s.name : '';
+  }).filter(Boolean).join(', ');
+}
+function renderSites(){
+  renderMonthLabel(document.getElementById('monthLabelSite'), viewYear, viewMonth);
+  const total = daysInMonth(viewYear, viewMonth);
+  const monthStart = new Date(viewYear, viewMonth, 1);
+  const monthEnd = new Date(viewYear, viewMonth, total);
+  const wrap = document.getElementById('ganttWrap');
+  if(state.sites.length===0){ wrap.innerHTML = `<p class="list-empty">${t('noProjects')}</p>`; return; }
+  let ruler = `<div class="gantt-ruler">`;
+  for(let i=1;i<=total;i+=Math.ceil(total/10)){ ruler += `<span style="flex:${Math.ceil(total/10)}">${i}</span>`; }
+  ruler += `</div>`;
+  let rows = '';
+  state.sites.forEach(p=>{
+    const s = new Date(p.start+'T00:00:00');
+    const e = new Date(p.end+'T00:00:00');
+    const label = `<div class="gantt-label">${escapeHtml(p.name)}<small>${escapeHtml(assigneeSummary(p.assignees))}</small></div>`;
+    if(e < monthStart || s > monthEnd){
+      rows += `<div class="gantt-row" data-site="${p.id}">${label}<div class="gantt-track"></div></div>`;
+      return;
+    }
+    const clampStart = s < monthStart ? monthStart : s;
+    const clampEnd = e > monthEnd ? monthEnd : e;
+    const startDay = clampStart.getDate();
+    const endDay = clampEnd.getDate();
+    const leftPct = ((startDay-1)/total)*100;
+    const widthPct = ((endDay-startDay+1)/total)*100;
+    rows += `<div class="gantt-row" data-site="${p.id}">${label}
+      <div class="gantt-track"><div class="gantt-bar" style="left:${leftPct}%;width:${widthPct}%;"><span>${escapeHtml(p.name)}</span></div></div>
+    </div>`;
+  });
+  wrap.innerHTML = ruler + rows;
+  wrap.querySelectorAll('[data-site]').forEach(row=>{ row.addEventListener('click', ()=>openSiteModal(row.dataset.site)); });
+}
+document.getElementById('addSiteBtn').addEventListener('click', ()=>openSiteModal(null));
+
+function buildAssigneeSelectOptions(selectedStaffId, isExternal){
+  let html = `<option value="">-</option>`;
+  state.staff.forEach(s=>{ html += `<option value="${s.id}" ${!isExternal && selectedStaffId===s.id?'selected':''}>${escapeHtml(s.name)}</option>`; });
+  html += `<option value="__external__" ${isExternal?'selected':''}>${t('externalContractor')}</option>`;
+  return html;
+}
+function addAssigneeRow(data){
+  data = data || {};
+  const wrap = document.getElementById('assigneeRows');
+  const row = document.createElement('div');
+  row.className = 'assignee-row';
+  const isExternal = data.kind==='external';
+  row.innerHTML = `
+    <div class="row-gap" style="align-items:center;">
+      <select class="assignee-select" style="flex:1;">${buildAssigneeSelectOptions(data.staffId, isExternal)}</select>
+      <button type="button" class="ic-btn assignee-remove">🗑️</button>
+    </div>
+    <div class="assignee-external-fields" style="display:${isExternal?'flex':'none'};">
+      <input type="text" class="assignee-company" placeholder="${t('companyName')}" list="partnerCompanyList" value="${escapeHtml(data.company||'')}">
+      <input type="text" class="assignee-worktype" placeholder="${t('workType')}" list="workTypeList" value="${escapeHtml(data.workType||'')}">
+    </div>`;
+  wrap.appendChild(row);
+  row.querySelector('.assignee-select').addEventListener('change', (e)=>{
+    row.querySelector('.assignee-external-fields').style.display = e.target.value==='__external__' ? 'flex' : 'none';
+  });
+  row.querySelector('.assignee-remove').addEventListener('click', ()=> row.remove());
+}
+document.getElementById('addAssigneeRowBtn').addEventListener('click', ()=>addAssigneeRow(null));
+function collectAssignees(){
+  const rows = document.querySelectorAll('#assigneeRows .assignee-row');
+  const result = [];
+  rows.forEach(row=>{
+    const val = row.querySelector('.assignee-select').value;
+    if(!val) return;
+    if(val==='__external__'){
+      const company = row.querySelector('.assignee-company').value.trim();
+      const workType = row.querySelector('.assignee-worktype').value.trim();
+      if(company || workType) result.push({id:uid(), kind:'external', company, workType});
+    } else {
+      result.push({id:uid(), kind:'staff', staffId:val});
+    }
+  });
+  return result;
+}
+function openSiteModal(id){
+  editingSiteId = id;
+  const p = id ? siteById(id) : null;
+  document.getElementById('siteModalTitle').textContent = p ? t('edit') : t('addProject');
+  document.getElementById('siteIdInput').value = id||'';
+  document.getElementById('siteNameInput').value = p ? p.name : '';
+  document.getElementById('siteAddressInput').value = p ? (p.address||'') : '';
+  document.getElementById('siteStartInput').value = p ? p.start : todayKey();
+  document.getElementById('siteEndInput').value = p ? p.end : todayKey();
+  document.getElementById('partnerCompanyList').innerHTML = state.partners.map(pt=>`<option value="${escapeHtml(pt.name)}">`).join('');
+  document.getElementById('assigneeRows').innerHTML = '';
+  if(p && p.assignees && p.assignees.length){ p.assignees.forEach(a=>addAssigneeRow(a)); }
+  document.getElementById('deleteSiteBtn').style.display = p ? 'inline-flex':'none';
+  openModal('modalSite');
+}
+document.getElementById('saveSiteBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('siteNameInput').value.trim();
+  const address = document.getElementById('siteAddressInput').value.trim();
+  const start = document.getElementById('siteStartInput').value;
+  const end = document.getElementById('siteEndInput').value;
+  const assignees = collectAssignees();
+  if(!name || !start || !end){ showToast(t('requiredField')); return; }
+  if(editingSiteId){
+    const p = siteById(editingSiteId);
+    Object.assign(p, {name, address, start, end, assignees});
+  } else {
+    state.sites.push({id:uid(), name, address, start, end, assignees});
+  }
+  saveState(); closeModal('modalSite'); renderSites();
+});
+document.getElementById('deleteSiteBtn').addEventListener('click', ()=>{
+  if(!confirm(t('confirmDelete'))) return;
+  state.sites = state.sites.filter(p=>p.id!==editingSiteId);
+  saveState(); closeModal('modalSite'); renderSites();
+});
+
+/* ======================= Notices ======================= */
+let editingNoticeId = null;
+function updateNoticeBadge(){
+  const unreadCount = state.notices.filter(n=> new Date(n.createdAt||0).getTime() > (state.settings.lastNoticeSeen||0)).length;
+  document.getElementById('noticeBadge').style.display = unreadCount>0 ? 'inline-block':'none';
+}
+function renderNotices(){
+  const wrap = document.getElementById('noticeList');
+  const lastSeen = state.settings.lastNoticeSeen||0;
+  const list = [...state.notices].sort((a,b)=> (b.createdAt||'').localeCompare(a.createdAt||''));
+  if(list.length===0){ wrap.innerHTML = `<p class="list-empty">${t('noNotices')}</p>`; }
+  else{
+    wrap.innerHTML = list.map(n=>{
+      const isNew = new Date(n.createdAt||0).getTime() > lastSeen;
+      const authorName = n.author ? (staffById(n.author) ? staffById(n.author).name : n.author) : '';
+      return `<div class="notice-item ${isNew?'is-new':''}" data-notice="${n.id}">
+        <div class="n-head"><span class="n-title">${isNew?'<span class="new-mark">🆕</span>':''}${escapeHtml(n.title)}</span><span class="n-meta">${(n.createdAt||'').slice(0,10)}</span></div>
+        <div class="n-body">${escapeHtml(n.body)}</div>
+        <div class="n-actions"><span class="badge">${escapeHtml(authorName)}</span></div>
+      </div>`;
+    }).join('');
+    wrap.querySelectorAll('[data-notice]').forEach(el=>{ el.addEventListener('click', ()=>openNoticeModal(el.dataset.notice)); });
+  }
+  if(activeTab==='notice'){
+    state.settings.lastNoticeSeen = Date.now();
+    saveState();
+  }
+  updateNoticeBadge();
+}
+document.getElementById('addNoticeBtn').addEventListener('click', ()=>openNoticeModal(null));
+function populateNoticeAuthorSelect(){
+  const sel = document.getElementById('noticeAuthorInput');
+  sel.innerHTML = `<option value="">-</option>` + state.staff.map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`).join('');
+}
+function openNoticeModal(id){
+  editingNoticeId = id;
+  const n = id ? state.notices.find(x=>x.id===id) : null;
+  document.getElementById('noticeModalTitle').textContent = n ? t('edit') : t('addNotice');
+  document.getElementById('noticeIdInput').value = id||'';
+  document.getElementById('noticeTitleInput').value = n ? n.title : '';
+  populateNoticeAuthorSelect();
+  document.getElementById('noticeAuthorInput').value = n ? (n.author||'') : '';
+  document.getElementById('noticeBodyInput').value = n ? n.body : '';
+  document.getElementById('deleteNoticeBtn').style.display = n ? 'inline-flex':'none';
+  openModal('modalNotice');
+}
+document.getElementById('saveNoticeBtn').addEventListener('click', ()=>{
+  const title = document.getElementById('noticeTitleInput').value.trim();
+  const author = document.getElementById('noticeAuthorInput').value.trim();
+  const body = document.getElementById('noticeBodyInput').value.trim();
+  if(!title || !body){ showToast(t('requiredField')); return; }
+  if(editingNoticeId){
+    const n = state.notices.find(x=>x.id===editingNoticeId);
+    Object.assign(n, {title, author, body});
+  } else {
+    state.notices.push({id:uid(), title, author, body, createdAt:new Date().toISOString()});
+  }
+  saveState(); closeModal('modalNotice'); renderNotices();
+});
+document.getElementById('deleteNoticeBtn').addEventListener('click', ()=>{
+  if(!confirm(t('confirmDelete'))) return;
+  state.notices = state.notices.filter(n=>n.id!==editingNoticeId);
+  saveState(); closeModal('modalNotice'); renderNotices();
+});
+
+/* ======================= Staff / Settings ======================= */
+let editingStaffId = null;
+function renderSettings(){
+  const wrap = document.getElementById('staffListWrap');
+  if(state.staff.length===0){ wrap.innerHTML = `<p class="list-empty">${t('noStaff')}</p>`; }
+  else{
+    wrap.innerHTML = state.staff.map((s,i)=>`
+      <div class="staff-item" data-staff="${s.id}">
+        <span class="staff-swatch" style="background:${s.color}"></span>
+        <span class="s-name" data-open="${s.id}">${escapeHtml(s.name)} <span class="s-role">${escapeHtml(s.role||'')}</span></span>
+        <div class="staff-actions">
+          <button type="button" class="staff-up" data-id="${s.id}" ${i===0?'disabled':''}>▲</button>
+          <button type="button" class="staff-down" data-id="${s.id}" ${i===state.staff.length-1?'disabled':''}>▼</button>
+          <button type="button" class="staff-del" data-id="${s.id}">🗑️</button>
+        </div>
+      </div>`).join('');
+    wrap.querySelectorAll('.s-name[data-open]').forEach(el=>{ el.addEventListener('click', ()=>openStaffModal(el.dataset.open)); });
+    wrap.querySelectorAll('.staff-up').forEach(btn=>{ btn.addEventListener('click', ()=>moveStaff(btn.dataset.id, -1)); });
+    wrap.querySelectorAll('.staff-down').forEach(btn=>{ btn.addEventListener('click', ()=>moveStaff(btn.dataset.id, 1)); });
+    wrap.querySelectorAll('.staff-del').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        if(!confirm(t('confirmDelete'))) return;
+        state.staff = state.staff.filter(s=>s.id!==btn.dataset.id);
+        shiftSelectedStaff.delete(btn.dataset.id);
+        saveState(); renderSettings();
+      });
+    });
+  }
+  document.getElementById('gasUrlInput').value = state.settings.gasUrl || '';
+  document.getElementById('lastSyncText').textContent = state.settings.lastSync ? new Date(state.settings.lastSync).toLocaleString() : t('neverSynced');
+  updateSyncPill();
+  renderPartners();
+}
+function moveStaff(id, dir){
+  const idx = state.staff.findIndex(s=>s.id===id);
+  const newIdx = idx + dir;
+  if(idx<0 || newIdx<0 || newIdx>=state.staff.length) return;
+  const tmp = state.staff[idx];
+  state.staff[idx] = state.staff[newIdx];
+  state.staff[newIdx] = tmp;
+  saveState(); renderSettings();
+}
+
+/* ---- Partners (協力会社) ---- */
+let editingPartnerId = null;
+function renderPartners(){
+  const wrap = document.getElementById('partnerListWrap');
+  if(state.partners.length===0){ wrap.innerHTML = `<p class="list-empty">${t('noAssignees')}</p>`; return; }
+  wrap.innerHTML = state.partners.map(p=>`
+    <div class="staff-item" data-partner="${p.id}">
+      <span class="staff-swatch" style="background:var(--partner-gray)"></span>
+      <span class="s-name" data-open-partner="${p.id}">${escapeHtml(p.name)} <span class="s-role">${escapeHtml(p.workType||'')}</span></span>
+      <div class="staff-actions"><button type="button" class="staff-del" data-pid="${p.id}">🗑️</button></div>
+    </div>`).join('');
+  wrap.querySelectorAll('[data-open-partner]').forEach(el=>{ el.addEventListener('click', ()=>openPartnerModal(el.dataset.openPartner)); });
+  wrap.querySelectorAll('[data-pid]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      if(!confirm(t('confirmDelete'))) return;
+      state.partners = state.partners.filter(p=>p.id!==btn.dataset.pid);
+      saveState(); renderPartners();
+    });
+  });
+}
+document.getElementById('addPartnerBtn').addEventListener('click', ()=>openPartnerModal(null));
+function openPartnerModal(id){
+  editingPartnerId = id;
+  const p = id ? state.partners.find(x=>x.id===id) : null;
+  document.getElementById('partnerModalTitle').textContent = p ? t('edit') : t('addPartner');
+  document.getElementById('partnerIdInput').value = id||'';
+  document.getElementById('partnerNameInput').value = p ? p.name : '';
+  document.getElementById('partnerWorkTypeInput').value = p ? (p.workType||'') : '';
+  document.getElementById('partnerContactInput').value = p ? (p.contact||'') : '';
+  document.getElementById('deletePartnerBtn').style.display = p ? 'inline-flex':'none';
+  openModal('modalPartner');
+}
+document.getElementById('savePartnerBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('partnerNameInput').value.trim();
+  const workType = document.getElementById('partnerWorkTypeInput').value.trim();
+  const contact = document.getElementById('partnerContactInput').value.trim();
+  if(!name){ showToast(t('requiredField')); return; }
+  if(editingPartnerId){
+    const p = state.partners.find(x=>x.id===editingPartnerId);
+    Object.assign(p, {name, workType, contact});
+  } else {
+    state.partners.push({id:uid(), name, workType, contact});
+  }
+  saveState(); closeModal('modalPartner'); renderPartners();
+});
+document.getElementById('deletePartnerBtn').addEventListener('click', ()=>{
+  if(!confirm(t('confirmDelete'))) return;
+  state.partners = state.partners.filter(p=>p.id!==editingPartnerId);
+  saveState(); closeModal('modalPartner'); renderPartners();
+});
+
+document.getElementById('addStaffBtn').addEventListener('click', ()=>openStaffModal(null));
+function openStaffModal(id){
+  editingStaffId = id;
+  const s = id ? staffById(id) : null;
+  document.getElementById('staffModalTitle').textContent = s ? t('edit') : t('addStaff');
+  document.getElementById('staffIdInput').value = id||'';
+  document.getElementById('staffNameInput').value = s ? s.name : '';
+  document.getElementById('staffRoleInput').value = s ? (s.role||'') : '';
+  document.getElementById('staffColorInput').value = s ? s.color : randomColor();
+  document.getElementById('deleteStaffBtn').style.display = s ? 'inline-flex':'none';
+  openModal('modalStaff');
+}
+function randomColor(){
+  const palette = ['#1F3A5F','#E8963C','#2F8F7E','#8A66AC','#C1443C','#335A85','#B0862F'];
+  return palette[Math.floor(Math.random()*palette.length)];
+}
+document.getElementById('saveStaffBtn').addEventListener('click', ()=>{
+  const name = document.getElementById('staffNameInput').value.trim();
+  const role = document.getElementById('staffRoleInput').value.trim();
+  const color = document.getElementById('staffColorInput').value;
+  if(!name){ showToast(t('requiredField')); return; }
+  if(editingStaffId){
+    const s = staffById(editingStaffId);
+    Object.assign(s, {name, role, color});
+  } else {
+    const ns = {id:uid(), name, role, color};
+    state.staff.push(ns);
+    shiftSelectedStaff.add(ns.id);
+  }
+  saveState(); closeModal('modalStaff'); renderSettings();
+});
+document.getElementById('deleteStaffBtn').addEventListener('click', ()=>{
+  if(!confirm(t('confirmDelete'))) return;
+  state.staff = state.staff.filter(s=>s.id!==editingStaffId);
+  shiftSelectedStaff.delete(editingStaffId);
+  saveState(); closeModal('modalStaff'); renderSettings();
+});
+
+/* ======================= Modal helpers ======================= */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('[data-close]').forEach(btn=>{ btn.addEventListener('click', ()=>closeModal(btn.dataset.close)); });
+document.querySelectorAll('.modal-overlay').forEach(ov=>{ ov.addEventListener('click', (e)=>{ if(e.target===ov) ov.classList.remove('open'); }); });
+
+/* ======================= Tabs / Nav ======================= */
+document.querySelectorAll('.tab-btn').forEach(btn=>{ btn.addEventListener('click', ()=>switchTab(btn.dataset.tab)); });
+document.getElementById('fabAdd').addEventListener('click', ()=>openDayModal(todayKey()));
+
+function shiftMonth(delta){
+  viewMonth += delta;
+  if(viewMonth<0){ viewMonth=11; viewYear--; }
+  if(viewMonth>11){ viewMonth=0; viewYear++; }
+  renderActivePanel();
+}
+document.getElementById('prevMonthBtn').addEventListener('click', ()=>shiftMonth(-1));
+document.getElementById('nextMonthBtn').addEventListener('click', ()=>shiftMonth(1));
+document.getElementById('prevMonthBtnShift').addEventListener('click', ()=>shiftMonth(-1));
+document.getElementById('nextMonthBtnShift').addEventListener('click', ()=>shiftMonth(1));
+document.getElementById('prevMonthBtnSite').addEventListener('click', ()=>shiftMonth(-1));
+document.getElementById('nextMonthBtnSite').addEventListener('click', ()=>shiftMonth(1));
+document.getElementById('todayBtn').addEventListener('click', ()=>{
+  const d = new Date(); viewYear=d.getFullYear(); viewMonth=d.getMonth(); renderActivePanel();
+});
+document.getElementById('langSelect').addEventListener('change', (e)=>{
+  state.settings.lang = e.target.value; saveState(); applyI18n(); renderActivePanel();
+});
+
+/* ======================= GAS Sync ======================= */
+function updateSyncPill(){
+  const dot = document.getElementById('syncDot');
+  const label = document.getElementById('syncLabel');
+  if(state.settings.gasUrl){ dot.classList.remove('off'); label.textContent = state.settings.lastSync ? t('lastSync') : t('gasSetting'); }
+  else { dot.classList.add('off'); label.textContent = t('neverSynced'); }
+}
+document.getElementById('gasUrlInput').addEventListener('change', (e)=>{
+  state.settings.gasUrl = e.target.value.trim(); saveState(); updateSyncPill();
+});
+function serializeSites(sites){ return sites.map(s=>Object.assign({}, s, {assignees: JSON.stringify(s.assignees||[])})); }
+function deserializeSites(sites){
+  return (sites||[]).map(s=>{
+    let assignees = [];
+    try{ assignees = typeof s.assignees==='string' ? JSON.parse(s.assignees||'[]') : (s.assignees||[]); }catch(e){ assignees=[]; }
+    return Object.assign({}, s, {assignees});
+  });
+}
+function serializeEvents(events){ return events.map(e=>Object.assign({}, e, {sites: JSON.stringify(e.sites||[])})); }
+function deserializeEvents(events){
+  return (events||[]).map(e=>{
+    let sites = [];
+    try{ sites = typeof e.sites==='string' ? JSON.parse(e.sites||'[]') : (e.sites||[]); }catch(err){ sites=[]; }
+    const isHoliday = e.isHoliday===true || e.isHoliday==='TRUE' || e.isHoliday==='true';
+    return Object.assign({}, e, {sites, isHoliday});
+  });
+}
+function colorFromString(str){
+  const palette = ['#1F3A5F','#E8963C','#2F8F7E','#8A66AC','#C1443C','#335A85','#B0862F','#2F5FA6','#7C6A46','#5C7A8A'];
+  let hash = 0;
+  for(let i=0;i<str.length;i++){ hash = (hash*31 + str.charCodeAt(i)) >>> 0; }
+  return palette[hash % palette.length];
+}
+function deserializeStaff(list){
+  // スプレッドシートで「名前」列だけ入力されていても動くように、
+  // IDが空なら名前をIDとして扱い、色が空なら名前から自動で色を割り当てる。
+  return (list||[])
+    .map(s=>{
+      const name = (s.name||'').toString().trim();
+      if(!name) return null;
+      const id = (s.id && String(s.id).trim()) || name;
+      const color = (s.color && String(s.color).trim()) || colorFromString(id);
+      const role = s.role || '';
+      return {id, name, role, color};
+    })
+    .filter(Boolean);
+}
+document.getElementById('pullBtn').addEventListener('click', async ()=>{
+  const url = state.settings.gasUrl;
+  if(!url){ showToast(t('gasUrl')); return; }
+  showToast(t('syncing'));
+  try{
+    const res = await fetch(url, {method:'GET'});
+    const data = await res.json();
+    if(data.events) state.events = deserializeEvents(data.events);
+    if(data.sites) state.sites = deserializeSites(data.sites);
+    if(data.notices) state.notices = data.notices;
+    if(data.staff) state.staff = deserializeStaff(data.staff);
+    if(data.partners) state.partners = data.partners;
+    shiftSelectedStaff = new Set(state.staff.map(s=>s.id));
+    state.settings.lastSync = new Date().toISOString();
+    saveState();
+    renderActivePanel();
+    renderSettings();
+    showToast(t('syncSuccess'));
+  }catch(err){ console.error(err); showToast(t('syncFail')); }
+});
+document.getElementById('pushBtn').addEventListener('click', async ()=>{
+  const url = state.settings.gasUrl;
+  if(!url){ showToast(t('gasUrl')); return; }
+  showToast(t('syncing'));
+  try{
+    const payload = { action:'syncPush', data:{events:serializeEvents(state.events), sites:serializeSites(state.sites), notices:state.notices, staff:state.staff, partners:state.partners} };
+    const res = await fetch(url, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body:JSON.stringify(payload)});
+    await res.json();
+    state.settings.lastSync = new Date().toISOString();
+    saveState();
+    renderSettings();
+    showToast(t('syncSuccess'));
+  }catch(err){ console.error(err); showToast(t('syncFail')); }
+});
+
+/* ======================= Backup export / import ======================= */
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'genba-schedule-backup-'+todayKey()+'.json';
+  a.click();
+});
+document.getElementById('importBtn').addEventListener('click', ()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      state = Object.assign(defaultState(), parsed, {settings:Object.assign(defaultState().settings, parsed.settings||{})});
+      shiftSelectedStaff = new Set(state.staff.map(s=>s.id));
+      saveState();
+      applyI18n();
+      renderActivePanel();
+      renderSettings();
+      showToast(t('syncSuccess'));
+    }catch(err){ showToast(t('syncFail')); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+document.getElementById('clearBtn').addEventListener('click', ()=>{
+  if(!confirm(t('confirmClear'))) return;
+  state = defaultState();
+  shiftSelectedStaff = new Set();
+  saveState();
+  applyI18n();
+  renderActivePanel();
+  renderSettings();
+});
+
+/* ======================= Init ======================= */
+function init(){
+  applyI18n();
+  switchTab('calendar');
+  updateNoticeBadge();
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+}
+init();
+</script>
+</body>
+</html>
